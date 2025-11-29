@@ -7,10 +7,12 @@ class TimerManager {
     var isRunning: Bool = false
     private var timer: Timer?
     
-    private let defaultDuration = 60 // 1 minute in seconds
+    private let initialDuration = 60 // Initial 1 minute in seconds
+    private var userSetDuration: Int = 60 // Tracks user-adjusted duration
     
     init() {
-        self.secondsRemaining = defaultDuration
+        self.secondsRemaining = initialDuration
+        self.userSetDuration = initialDuration
     }
     
     // MARK: - Timer Control
@@ -32,14 +34,19 @@ class TimerManager {
     
     func reset() {
         pause()
-        secondsRemaining = defaultDuration
+        secondsRemaining = userSetDuration
     }
     
     func addTime(_ seconds: Int) {
         secondsRemaining += seconds
+        
+        // Update the user-set duration to remember this adjustment
+        userSetDuration = secondsRemaining
+        
         // Prevent negative time
         if secondsRemaining < 0 {
             secondsRemaining = 0
+            userSetDuration = 0
         }
     }
     
