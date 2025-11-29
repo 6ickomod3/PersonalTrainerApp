@@ -23,38 +23,47 @@ struct ContentView: View {
     }
     
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(muscleGroups) { group in
-                    NavigationLink(value: group) {
-                        Text(group.name)
+        ZStack {
+            NavigationStack {
+                List {
+                    ForEach(muscleGroups) { group in
+                        NavigationLink(value: group) {
+                            Text(group.name)
+                        }
+                    }
+                    .onDelete { indexSet in
+                        deleteGroups(at: indexSet)
                     }
                 }
-                .onDelete { indexSet in
-                    deleteGroups(at: indexSet)
-                }
-            }
-            .navigationTitle("Workout")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button("Add Muscle Group") {
-                            showingAddGroupSheet = true
+                .navigationTitle("Workout")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu {
+                            Button("Add Muscle Group") {
+                                showingAddGroupSheet = true
+                            }
+                            Button("Settings", systemImage: "gear") {
+                                showingSettingsSheet = true
+                            }
+                            Button("Reset Data", role: .destructive) {
+                                resetData()
+                            }
+                        } label: {
+                            Label("Menu", systemImage: "ellipsis.circle")
                         }
-                        Button("Settings", systemImage: "gear") {
-                            showingSettingsSheet = true
-                        }
-                        Button("Reset Data", role: .destructive) {
-                            resetData()
-                        }
-                    } label: {
-                        Label("Menu", systemImage: "ellipsis.circle")
                     }
                 }
+                .navigationDestination(for: MuscleGroup.self) { group in
+                    ExerciseListView(muscleGroup: group)
+                }
             }
-            .navigationDestination(for: MuscleGroup.self) { group in
-                ExerciseListView(muscleGroup: group)
+            
+            // Fixed Timer at Bottom
+            VStack {
+                Spacer()
+                TimerView()
             }
+            .ignoresSafeArea(edges: .bottom)
         }
         .onAppear {
             DataMigration.performMigrations(modelContext: modelContext)
