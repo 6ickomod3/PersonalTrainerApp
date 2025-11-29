@@ -7,7 +7,10 @@ A comprehensive iOS fitness companion for tracking workouts, managing exercises,
 - 📋 **Muscle Group Organization** - Organize exercises by muscle groups with custom group creation
 - 💪 **Exercise Library** - Pre-loaded exercises with ability to add custom ones
 - 📊 **Workout Logging** - Track sets, reps, and weight with automatic timestamps
-- 📈 **History Tracking** - View complete workout history for each exercise
+- 📈 **Volume Tracking** - Automatic volume calculation (reps × weight) for each set
+- 📅 **Daily Aggregation** - History organized by day with total daily volume display
+- ⚙️ **Per-Exercise Customization** - Configure weight range and step size for individual exercises
+- 🗑️ **Smart Data Management** - Configurable data retention (1-30 days) with automatic cleanup
 - 💾 **Data Persistence** - Reliable local storage using SwiftData
 - 🔄 **Smart Migrations** - Automatic data handling for app updates
 
@@ -53,8 +56,22 @@ open PersonalTrainerApp.xcodeproj
 1. Select an exercise
 2. Use wheel pickers to set reps and weight
 3. Tap "Add Set" to log
-4. View your workout history below
-5. Swipe left on sets to delete if needed
+4. View your workout history organized by day below
+5. See volume calculated for each set (reps × weight)
+6. View daily totals and total daily volume
+7. Swipe left on sets to delete if needed
+
+### Exercise Settings
+1. Open any exercise detail view
+2. Tap the gear icon (⚙️) in the top right
+3. Customize weight range (min, max, step) for that exercise
+4. Tap "Done" to save - settings persist automatically
+
+### App Settings
+1. Tap the menu (⋯) on the main screen
+2. Select "Settings"
+3. Configure data retention (1-30 days)
+4. Older workout logs automatically delete to manage storage
 
 ## Default Content
 
@@ -88,7 +105,7 @@ open PersonalTrainerApp.xcodeproj
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed version history and upcoming features.
 
-**Current Version:** v1.0.0 (November 29, 2025)
+**Current Version:** v0.2.0 (November 29, 2025)
 
 ## Future Roadmap
 
