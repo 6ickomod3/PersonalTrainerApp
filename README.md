@@ -11,6 +11,7 @@ A comprehensive iOS fitness companion for tracking workouts, managing exercises,
 - 📅 **Daily Aggregation** - History organized by day with total daily volume display
 - ⚙️ **Per-Exercise Customization** - Configure weight range and step size for individual exercises
 - 🗑️ **Smart Data Management** - Configurable data retention (1-30 days) with automatic cleanup
+- ⏱️ **Rest Timer** - Built-in countdown timer (default 1-min) with adjustable ±15s, collapsible UI, and haptic feedback
 - 💾 **Data Persistence** - Reliable local storage using SwiftData
 - 🔄 **Smart Migrations** - Automatic data handling for app updates
 
@@ -73,6 +74,22 @@ open PersonalTrainerApp.xcodeproj
 3. Configure data retention (1-30 days)
 4. Older workout logs automatically delete to manage storage
 
+### Rest Timer
+1. Timer appears at the bottom of the screen (always visible)
+2. Default countdown is 1 minute (60 seconds)
+3. Adjust time:
+   - Tap **–15s** to decrease by 15 seconds
+   - Tap **+15s** to increase by 15 seconds
+   - Adjusted time is remembered on reset
+4. Control timer:
+   - Tap **Start** to begin countdown
+   - Tap **Pause** to pause the timer
+   - Tap **Reset** to return to your set duration (or 1 minute default)
+5. Collapse/Expand:
+   - Drag timer down 50+ points to minimize (shows only time)
+   - Tap minimized timer or drag up to expand again
+   - Haptic feedback (vibration) triggers when timer reaches 0:00
+
 ## Default Content
 
 ### Muscle Groups
@@ -105,7 +122,7 @@ open PersonalTrainerApp.xcodeproj
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed version history and upcoming features.
 
-**Current Version:** v0.2.0 (November 29, 2025)
+**Current Version:** v0.3.0 (November 29, 2025)
 
 ## Future Roadmap
 

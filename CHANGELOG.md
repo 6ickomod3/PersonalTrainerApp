@@ -96,6 +96,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] - 2025-11-29
+
+### Added
+- **Rest Timer Feature**
+  - Built-in 1-minute countdown timer fixed at bottom of app
+  - Adjustable duration with ±15 second buttons
+  - Smart reset function remembers user-adjusted duration
+  - Start/Pause toggle for flexible workout breaks
+  
+- **Collapsible Timer UI**
+  - Expanded view with full controls and timer display
+  - Minimized view showing only time (tap to expand)
+  - Drag-down gesture (50+ points) to collapse
+  - Smooth 0.3-second animations for state transitions
+  - Centered time display in minimized state
+
+- **Haptic Feedback System**
+  - 3-second continuous vibration pattern when timer ends
+  - 15 haptic pulses at 0.2-second intervals for noticeable alert
+  - Medium impact strength for gym-friendly feedback
+  - Works in silent mode without audio alerts
+
+### Improved
+- Timer display uses system default font family matching app styling
+- Button fonts standardized across timer and app (system .body font)
+- Clean white card design with rounded corners matching exercise cards
+- Double bottom padding (24pt) to avoid phone rounded bottom edge
+- Better visual hierarchy with chevron indicators for collapse/expand
+- Larger 50x50pt touch target on expand button for easy control
+
+### Technical Details
+- `TimerManager` class with Observable pattern for state management
+- DragGesture implementation for collapse/expand functionality
+- UIImpactFeedbackGenerator for haptic feedback pattern
+- Computed `formattedTime` property for MM:SS display
+- Efficient timer cleanup with deinit pattern
+- Smooth state transitions with SwiftUI animations
+
+---
+
 ## [Unreleased]
 
 ### Planned Features
