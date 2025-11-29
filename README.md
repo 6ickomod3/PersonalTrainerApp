@@ -1,0 +1,116 @@
+# Personal Trainer App
+
+A comprehensive iOS fitness companion for tracking workouts, managing exercises, and organizing your training routine by muscle group.
+
+## Features
+
+- 📋 **Muscle Group Organization** - Organize exercises by muscle groups with custom group creation
+- 💪 **Exercise Library** - Pre-loaded exercises with ability to add custom ones
+- 📊 **Workout Logging** - Track sets, reps, and weight with automatic timestamps
+- 📈 **History Tracking** - View complete workout history for each exercise
+- 💾 **Data Persistence** - Reliable local storage using SwiftData
+- 🔄 **Smart Migrations** - Automatic data handling for app updates
+
+## Getting Started
+
+### Requirements
+- iOS 17.0+
+- Xcode 15.0+
+- Swift 5.9+
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/6ickomod3/PersonalTrainerApp.git
+cd PersonalTrainerApp
+```
+
+2. Open in Xcode:
+```bash
+open PersonalTrainerApp.xcodeproj
+```
+
+3. Build and run on simulator or device:
+   - Select target device
+   - Press Cmd+R or click Run
+
+## Usage
+
+### Main Screen
+- View all muscle groups
+- Tap to explore exercises in each group
+- Swipe left to delete muscle groups
+- Use menu (⋯) to add new groups or reset data
+
+### Exercise List
+- View exercises for selected muscle group
+- Tap to log workouts
+- Tap + to add new exercises
+- Swipe left to delete exercises
+
+### Logging a Workout
+1. Select an exercise
+2. Use wheel pickers to set reps and weight
+3. Tap "Add Set" to log
+4. View your workout history below
+5. Swipe left on sets to delete if needed
+
+## Default Content
+
+### Muscle Groups
+- Chest
+- Back
+- Leg
+- Shoulder
+- Arm
+
+### Sample Exercises
+- **Chest:** Bench Press, Push Up
+- **Back:** Pull Up, Deadlift
+- **Leg:** Squat, Lunge
+- **Shoulder:** Overhead Press, Lateral Raise
+- **Arm:** Bicep Curl, Tricep Extension
+
+## Architecture
+
+### Technology Stack
+- **UI Framework:** SwiftUI
+- **Data Storage:** SwiftData
+- **Architecture:** MVVM-inspired reactive design
+
+### Data Models
+- `MuscleGroup` - Exercise categorization
+- `Exercise` - Workout exercise with metadata
+- `WorkoutSet` - Individual set logging with timestamps
+
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for detailed version history and upcoming features.
+
+**Current Version:** v1.0.0 (November 29, 2025)
+
+## Future Roadmap
+
+- 📊 Progress analytics and visualizations
+- 🏆 Personal records (PR) tracking
+- 📅 Workout routines and templates
+- ⌚ Apple Watch companion app
+- 📝 Exercise notes and form tips
+- 📱 Dark mode support
+
+## License
+
+MIT License - See LICENSE file for details
+
+## Author
+
+Ji Dai (@6ickomod3)
+
+## Support
+
+For issues, feature requests, or feedback, please open an issue on GitHub.
+
+---
+
+**Made with ❤️ for fitness enthusiasts**
