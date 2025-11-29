@@ -1,0 +1,82 @@
+import Foundation
+import SwiftData
+
+@Model
+class MuscleGroup {
+    var id: UUID
+    var name: String
+    var createdDate: Date
+    
+    init(name: String) {
+        self.id = UUID()
+        self.name = name
+        self.createdDate = Date()
+    }
+    
+    static var defaultGroups: [MuscleGroup] {
+        [
+            MuscleGroup(name: "Chest"),
+            MuscleGroup(name: "Back"),
+            MuscleGroup(name: "Leg"),
+            MuscleGroup(name: "Shoulder"),
+            MuscleGroup(name: "Arm")
+        ]
+    }
+}
+
+@Model
+class Exercise {
+    var id: UUID
+    var name: String
+    var muscleGroupName: String = "Chest"
+    var defaultReps: Int
+    var defaultWeight: Double
+    var createdDate: Date?
+    var lastModifiedDate: Date?
+    
+    @Relationship(deleteRule: .cascade) var sets: [WorkoutSet] = []
+    
+    init(name: String, muscleGroupName: String, defaultReps: Int = 10, defaultWeight: Double = 20.0) {
+        self.id = UUID()
+        self.name = name
+        self.muscleGroupName = muscleGroupName
+        self.defaultReps = defaultReps
+        self.defaultWeight = defaultWeight
+        self.createdDate = Date()
+        self.lastModifiedDate = Date()
+    }
+}
+
+@Model
+class WorkoutSet {
+    var id: UUID
+    var reps: Int
+    var weight: Double
+    var date: Date
+    
+    var exercise: Exercise?
+    
+    init(reps: Int, weight: Double, date: Date = Date()) {
+        self.id = UUID()
+        self.reps = reps
+        self.weight = weight
+        self.date = date
+    }
+}
+
+extension Exercise {
+    static var sampleExercises: [Exercise] {
+        [
+            Exercise(name: "Bench Press", muscleGroupName: "Chest", defaultReps: 8, defaultWeight: 135.0),
+            Exercise(name: "Push Up", muscleGroupName: "Chest", defaultReps: 15, defaultWeight: 0.0),
+            Exercise(name: "Pull Up", muscleGroupName: "Back", defaultReps: 8, defaultWeight: 0.0),
+            Exercise(name: "Deadlift", muscleGroupName: "Back", defaultReps: 5, defaultWeight: 185.0),
+            Exercise(name: "Squat", muscleGroupName: "Leg", defaultReps: 8, defaultWeight: 155.0),
+            Exercise(name: "Lunge", muscleGroupName: "Leg", defaultReps: 12, defaultWeight: 30.0),
+            Exercise(name: "Overhead Press", muscleGroupName: "Shoulder", defaultReps: 10, defaultWeight: 65.0),
+            Exercise(name: "Lateral Raise", muscleGroupName: "Shoulder", defaultReps: 12, defaultWeight: 15.0),
+            Exercise(name: "Bicep Curl", muscleGroupName: "Arm", defaultReps: 10, defaultWeight: 25.0),
+            Exercise(name: "Tricep Extension", muscleGroupName: "Arm", defaultReps: 12, defaultWeight: 35.0)
+        ]
+    }
+}
