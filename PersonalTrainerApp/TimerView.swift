@@ -2,83 +2,155 @@ import SwiftUI
 
 struct TimerView: View {
     @State var timerManager = TimerManager()
+    @State private var isExpanded: Bool = true
+    @State private var dragOffset: CGFloat = 0
     
     var body: some View {
-        VStack(spacing: 16) {
-            // Timer Display
-            VStack(spacing: 8) {
-                Text("Rest Timer")
-                    .font(.caption)
+        VStack(spacing: 0) {
+            // Top Border
+            Divider()
+                .frame(height: 1)
+            
+            if isExpanded {
+                // Expanded View
+                expandedView
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            } else {
+                // Minimized View
+                minimizedView
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+            
+            // Bottom Border
+            Divider()
+                .frame(height: 1)
+        }
+        .background(Color(.systemBackground))
+        .padding(.bottom, 24)
+    }
+    
+    // MARK: - Expanded View
+    
+    private var expandedView: some View {
+        VStack(spacing: 20) {
+            // Label with icon
+            HStack(spacing: 8) {
+                Image(systemName: "timer")
+                    .font(.system(size: 14))
                     .foregroundStyle(.secondary)
                 
-                Text(timerManager.formattedTime)
-                    .font(.system(size: 48, weight: .bold, design: .monospaced))
-                    .foregroundStyle(timerManager.isRunning ? .blue : .primary)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
+                Text("Rest Timer")
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(.secondary)
+                
+                Spacer()
+                
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.secondary)
             }
-            .frame(height: 100)
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
             
-            // Control Buttons
-            HStack(spacing: 12) {
-                // -15s Button
-                Button(action: { timerManager.addTime(-15) }) {
-                    Text("–15s")
-                        .font(.system(.body, design: .rounded))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.bordered)
-                .tint(.gray)
+            // White Box Container with Timer and Buttons
+            VStack(spacing: 20) {
+                // Timer Display
+                Text(timerManager.formattedTime)
+                    .font(.system(size: 60, weight: .semibold, design: .default))
+                    .contentTransition(.numericText())
+                    .foregroundStyle(timerManager.isRunning ? .blue : .primary)
                 
-                Spacer()
-                
-                // Start/Pause Button
-                Button(action: {
-                    if timerManager.isRunning {
-                        timerManager.pause()
-                    } else {
-                        timerManager.start()
+                // Control Buttons
+                HStack(spacing: 16) {
+                    // -15s Button
+                    Button(action: { timerManager.addTime(-15) }) {
+                        Text("–15s")
+                            .font(.body)
+                            .foregroundStyle(.primary)
                     }
-                }) {
-                    Text(timerManager.isRunning ? "Pause" : "Start")
-                        .font(.system(.body, design: .rounded))
-                        .fontWeight(.semibold)
-                        .frame(minWidth: 80)
-                        .foregroundStyle(.white)
+                    
+                    // +15s Button
+                    Button(action: { timerManager.addTime(15) }) {
+                        Text("+15s")
+                            .font(.body)
+                            .foregroundStyle(.primary)
+                    }
+                    
+                    Spacer()
+                    
+                    // Start/Pause Button
+                    Button(action: {
+                        if timerManager.isRunning {
+                            timerManager.pause()
+                        } else {
+                            timerManager.start()
+                        }
+                    }) {
+                        Text(timerManager.isRunning ? "Pause" : "Start")
+                            .font(.body)
+                            .foregroundStyle(.primary)
+                    }
+                    
+                    // Reset Button
+                    Button(action: { timerManager.reset() }) {
+                        Text("Reset")
+                            .font(.body)
+                            .foregroundStyle(.primary)
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.blue)
-                
-                Spacer()
-                
-                // Reset Button
-                Button(action: { timerManager.reset() }) {
-                    Text("Reset")
-                        .font(.system(.body, design: .rounded))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.bordered)
-                .tint(.gray)
-                
-                Spacer()
-                
-                // +15s Button
-                Button(action: { timerManager.addTime(15) }) {
-                    Text("+15s")
-                        .font(.system(.body, design: .rounded))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.bordered)
-                .tint(.gray)
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 20)
+            .background(Color(.systemBackground))
+            .cornerRadius(12)
+            .padding(.horizontal, 12)
+            .padding(.bottom, 12)
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 12)
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-        .padding(.horizontal, 12)
-        .padding(.bottom, 8)
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    dragOffset = value.translation.height
+                }
+                .onEnded { value in
+                    if value.translation.height > 50 {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            isExpanded = false
+                        }
+                    }
+                    dragOffset = 0
+                }
+        )
+    }
+    
+    // MARK: - Minimized View
+    
+    private var minimizedView: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 0) {
+                Spacer()
+                
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 50, height: 50)
+                
+                Spacer()
+            }
+            
+            Text(timerManager.formattedTime)
+                .font(.system(size: 20, weight: .semibold, design: .default))
+                .monospacedDigit()
+                .foregroundStyle(timerManager.isRunning ? .blue : .primary)
+                .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                isExpanded = true
+            }
+        }
+        .contentTransition(.numericText())
     }
 }
 
@@ -87,5 +159,5 @@ struct TimerView: View {
         Spacer()
         TimerView()
     }
-    .background(Color(.systemBackground))
+    .background(Color(.systemGray6))
 }

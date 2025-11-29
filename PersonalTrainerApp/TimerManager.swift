@@ -63,8 +63,36 @@ class TimerManager {
     }
     
     private func triggerHapticFeedback() {
-        let impact = UIImpactFeedbackGenerator(style: .heavy)
-        impact.impactOccurred()
+        // Trigger strong haptic feedback for 3 seconds (like incoming call vibration)
+        let feedbackPattern = [
+            0.0,   // Start immediately
+            0.15,  // First impact
+            0.3,   // Second impact
+            0.45,  // Third impact
+            0.6,   // Fourth impact
+            0.75,  // Fifth impact
+            0.9,   // Sixth impact
+            1.05,  // Seventh impact
+            1.2,   // Eighth impact
+            1.35,  // Ninth impact
+            1.5,   // Tenth impact
+            1.65,  // Eleventh impact
+            1.8,   // Twelfth impact
+            1.95,  // Thirteenth impact
+            2.1,   // Fourteenth impact
+            2.25,  // Fifteenth impact
+            2.4,   // Sixteenth impact
+            2.55,  // Seventeenth impact
+            2.7,   // Eighteenth impact
+            2.85,  // Nineteenth impact
+        ]
+        
+        for delay in feedbackPattern {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                let impact = UIImpactFeedbackGenerator(style: .heavy)
+                impact.impactOccurred()
+            }
+        }
     }
     
     // MARK: - Time Formatting
