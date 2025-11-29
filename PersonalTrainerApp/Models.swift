@@ -34,6 +34,11 @@ class Exercise {
     var createdDate: Date?
     var lastModifiedDate: Date?
     
+    // Weight customization per exercise
+    var weightMin: Double = 0.0
+    var weightMax: Double = 200.0
+    var weightStep: Double = 5.0
+    
     @Relationship(deleteRule: .cascade) var sets: [WorkoutSet] = []
     
     init(name: String, muscleGroupName: String, defaultReps: Int = 10, defaultWeight: Double = 20.0) {
@@ -44,6 +49,37 @@ class Exercise {
         self.defaultWeight = defaultWeight
         self.createdDate = Date()
         self.lastModifiedDate = Date()
+        self.weightMin = 0.0
+        self.weightMax = 200.0
+        self.weightStep = 5.0
+    }
+    
+    /// Cleanup old sets, keeping only the specified number of most recent dates
+    func cleanupOldSets(modelContext: ModelContext, maxDays: Int = 4) {
+        // Group sets by date
+        let grouped = Dictionary(grouping: sets) { set in
+            Calendar.current.startOfDay(for: set.date)
+        }
+        
+        // Get unique dates sorted (most recent first)
+        let uniqueDates = grouped.keys.sorted(by: >)
+        
+        // Keep only the specified number of most recent dates
+        let datesToKeep = Set(uniqueDates.prefix(maxDays))
+        
+        // Delete sets from older dates
+        let setsToDelete = sets.filter { set in
+            let setDate = Calendar.current.startOfDay(for: set.date)
+            return !datesToKeep.contains(setDate)
+        }
+        
+        for set in setsToDelete {
+            modelContext.delete(set)
+        }
+        
+        if !setsToDelete.isEmpty {
+            try? modelContext.save()
+        }
     }
 }
 
@@ -55,6 +91,11 @@ class WorkoutSet {
     var date: Date
     
     var exercise: Exercise?
+    
+    // Computed volume (reps × weight)
+    var volume: Double {
+        Double(reps) * weight
+    }
     
     init(reps: Int, weight: Double, date: Date = Date()) {
         self.id = UUID()

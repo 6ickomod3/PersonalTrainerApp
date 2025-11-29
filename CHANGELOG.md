@@ -48,6 +48,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0] - 2025-11-29
+
+### Added
+- **Per-Exercise Customization**
+  - Customize weight range (min, max, step) for individual exercises
+  - Access settings via gear icon on exercise detail view
+  - Weight picker automatically uses exercise-specific settings
+  - Independent weight configurations for each exercise
+
+- **Volume Tracking & Analytics**
+  - Automatic volume calculation for each set (reps × weight)
+  - Daily aggregated history view with total daily volume
+  - Volume displayed prominently in blue for quick overview
+  - Individual set breakdown showing: reps × weight = volume
+
+- **Intelligent History View**
+  - Daily containers grouped by date
+  - Shows date, set count per day, and total daily volume
+  - Chronological ordering with most recent days first
+  - Clean visual hierarchy with exercise context
+
+- **Configurable Data Storage**
+  - User-customizable data retention (1-30 days)
+  - Automatic cleanup of old workout logs based on setting
+  - Default: keep last 4 days of data
+  - Smart cleanup removes only data older than configured days
+
+- **Simplified Settings**
+  - Focused app settings with only essential configuration
+  - Single storage setting instead of multiple unused options
+  - Reset to defaults button for one-click restoration
+
+### Improved
+- App Settings model refactored to minimal core properties
+- SettingsSheet streamlined for better UX
+- Automatic cleanup runs when opening exercise detail view
+- Empty daily containers auto-remove when last set is deleted
+- Better memory management with intelligent data retention
+
+### Technical Details
+- Volume as computed property (reps × weight) for automatic calculation
+- Daily aggregation via computed `setsByDate` property
+- Automatic cleanup triggered on view appearance
+- Enhanced ModelContainer configuration with all required models
+- Improved data consistency with schema validation
+
+---
+
 ## [Unreleased]
 
 ### Planned Features

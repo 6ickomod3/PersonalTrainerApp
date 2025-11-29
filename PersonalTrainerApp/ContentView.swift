@@ -12,9 +12,15 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var muscleGroups: [MuscleGroup]
     @Query private var exercises: [Exercise]
+    @Query private var appSettings: [AppSettings]
     @State private var showingResetAlert = false
     @State private var showingAddGroupSheet = false
+    @State private var showingSettingsSheet = false
     @State private var newGroupName = ""
+    
+    var settings: AppSettings {
+        appSettings.first ?? AppSettings()
+    }
     
     var body: some View {
         NavigationStack {
@@ -35,6 +41,9 @@ struct ContentView: View {
                         Button("Add Muscle Group") {
                             showingAddGroupSheet = true
                         }
+                        Button("Settings", systemImage: "gear") {
+                            showingSettingsSheet = true
+                        }
                         Button("Reset Data", role: .destructive) {
                             resetData()
                         }
@@ -49,6 +58,13 @@ struct ContentView: View {
         }
         .onAppear {
             DataMigration.performMigrations(modelContext: modelContext)
+            
+            // Seed settings if empty
+            if appSettings.isEmpty {
+                let newSettings = AppSettings()
+                modelContext.insert(newSettings)
+                try? modelContext.save()
+            }
             
             // Seed muscle groups if empty
             if muscleGroups.isEmpty {
@@ -66,6 +82,9 @@ struct ContentView: View {
             AddMuscleGroupSheet(isPresented: $showingAddGroupSheet) { name in
                 addMuscleGroup(name: name)
             }
+        }
+        .sheet(isPresented: $showingSettingsSheet) {
+            SettingsSheet(isPresented: $showingSettingsSheet, settings: settings)
         }
         .alert("Data Reset", isPresented: $showingResetAlert) {
             Button("OK", role: .cancel) { }
