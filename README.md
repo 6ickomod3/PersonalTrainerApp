@@ -11,7 +11,8 @@ A comprehensive iOS fitness companion for tracking workouts, managing exercises,
 - 📅 **Daily Aggregation** - History organized by day with total daily volume display
 - ⚙️ **Per-Exercise Customization** - Configure weight range and step size for individual exercises
 - 🗑️ **Smart Data Management** - Configurable data retention (1-30 days) with automatic cleanup
-- ⏱️ **Rest Timer** - Built-in countdown timer (default 1-min) with adjustable ±15s, collapsible UI, and haptic feedback
+- ⏱️ **Rest Timer** - Built-in countdown timer (default 1:30) with adjustable ±15s, collapsible glass UI, haptic feedback, and user-configurable duration
+- 🎨 **Glass Morphism Design** - Modern frosted glass aesthetic for timer matching iOS 15+ design language
 - 💾 **Data Persistence** - Reliable local storage using SwiftData
 - 🔄 **Smart Migrations** - Automatic data handling for app updates
 
@@ -76,7 +77,7 @@ open PersonalTrainerApp.xcodeproj
 
 ### Rest Timer
 1. Timer appears at the bottom of the screen (always visible)
-2. Default countdown is 1 minute (60 seconds)
+2. Default countdown is 1:30 (90 seconds) - configurable in settings
 3. Adjust time:
    - Tap **–15s** to decrease by 15 seconds
    - Tap **+15s** to increase by 15 seconds
@@ -84,11 +85,17 @@ open PersonalTrainerApp.xcodeproj
 4. Control timer:
    - Tap **Start** to begin countdown
    - Tap **Pause** to pause the timer
-   - Tap **Reset** to return to your set duration (or 1 minute default)
+   - Tap **Reset** to return to your set duration (or 1:30 default)
 5. Collapse/Expand:
    - Drag timer down 50+ points to minimize (shows only time)
    - Tap minimized timer or drag up to expand again
    - Haptic feedback (vibration) triggers when timer reaches 0:00
+6. Configure timer duration:
+   - Tap the menu (⋯) on the main screen
+   - Select "Settings"
+   - Update "Default Duration (seconds)" field
+   - Common values: 60 (1:00), 90 (1:30), 120 (2:00)
+   - Tap "Done" to save
 
 ## Default Content
 
@@ -122,7 +129,7 @@ open PersonalTrainerApp.xcodeproj
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed version history and upcoming features.
 
-**Current Version:** v0.3.0 (November 29, 2025)
+**Current Version:** v0.4.0 (November 29, 2025)
 
 ## Future Roadmap
 

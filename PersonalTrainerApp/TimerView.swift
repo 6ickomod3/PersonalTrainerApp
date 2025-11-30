@@ -1,24 +1,40 @@
 import SwiftUI
 
+// MARK: - Visual Effect Blur
+struct VisualEffectBlur: UIViewRepresentable {
+    var style: UIBlurEffect.Style
+    
+    func makeUIView(context: Context) -> UIVisualEffectView {
+        let blurEffect = UIBlurEffect(style: style)
+        let blurView = UIVisualEffectView(effect: blurEffect)
+        return blurView
+    }
+    
+    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {}
+}
+
 struct TimerView: View {
-    @State var timerManager = TimerManager()
+    @State var timerManager: TimerManager
     @State private var isExpanded: Bool = true
     @State private var dragOffset: CGFloat = 0
     var timerState: TimerState
+    var defaultTimerDuration: Int = 90
+    
+    init(timerState: TimerState, defaultTimerDuration: Int = 90) {
+        self.timerState = timerState
+        self.defaultTimerDuration = defaultTimerDuration
+        _timerManager = State(initialValue: TimerManager(initialDuration: defaultTimerDuration))
+    }
     
     var body: some View {
         VStack(spacing: 0) {
-            // Top Border
-            Divider()
-                .frame(height: 1)
-            
             if isExpanded {
                 // Expanded View
                 expandedView
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                     .background(GeometryReader { geo in
                         Color.clear.onAppear {
-                            timerState.expandedHeight = geo.size.height + 50 // Account for label, padding, borders
+                            timerState.expandedHeight = geo.size.height + 24
                         }
                     })
             } else {
@@ -27,16 +43,11 @@ struct TimerView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .background(GeometryReader { geo in
                         Color.clear.onAppear {
-                            timerState.collapsedHeight = geo.size.height + 2 // Just borders
+                            timerState.collapsedHeight = geo.size.height
                         }
                     })
             }
-            
-            // Bottom Border
-            Divider()
-                .frame(height: 1)
         }
-        .background(Color(.systemBackground))
         .padding(.bottom, 24)
         .onChange(of: isExpanded) { oldValue, newValue in
             timerState.isExpanded = newValue
@@ -46,79 +57,91 @@ struct TimerView: View {
     // MARK: - Expanded View
     
     private var expandedView: some View {
-        VStack(spacing: 20) {
-            // Label with icon
-            HStack(spacing: 8) {
-                Image(systemName: "timer")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.secondary)
-                
-                Text("Rest Timer")
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(.secondary)
-                
-                Spacer()
-                
-                Image(systemName: "chevron.up")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            
-            // White Box Container with Timer and Buttons
-            VStack(spacing: 20) {
-                // Timer Display
-                Text(timerManager.formattedTime)
-                    .font(.system(size: 60, weight: .semibold, design: .default))
-                    .contentTransition(.numericText())
-                    .foregroundStyle(timerManager.isRunning ? .blue : .primary)
-                
-                // Control Buttons
-                HStack(spacing: 16) {
-                    // -15s Button
-                    Button(action: { timerManager.addTime(-15) }) {
-                        Text("–15s")
-                            .font(.body)
-                            .foregroundStyle(.primary)
-                    }
+        VStack(spacing: 0) {
+            // Unified Glass Container
+            VStack(spacing: 16) {
+                // Header Section
+                HStack(spacing: 8) {
+                    Image(systemName: "timer")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
                     
-                    // +15s Button
-                    Button(action: { timerManager.addTime(15) }) {
-                        Text("+15s")
-                            .font(.body)
-                            .foregroundStyle(.primary)
-                    }
+                    Text("Rest Timer")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.secondary)
                     
                     Spacer()
                     
-                    // Start/Pause Button
-                    Button(action: {
-                        if timerManager.isRunning {
-                            timerManager.pause()
-                        } else {
-                            timerManager.start()
-                        }
-                    }) {
-                        Text(timerManager.isRunning ? "Pause" : "Start")
-                            .font(.body)
-                            .foregroundStyle(.primary)
-                    }
+                    Image(systemName: "chevron.up")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                
+                Divider()
+                    .padding(.horizontal, 16)
+                
+                // Content Section
+                VStack(spacing: 20) {
+                    // Timer Display
+                    Text(timerManager.formattedTime)
+                        .font(.system(size: 60, weight: .semibold, design: .default))
+                        .contentTransition(.numericText())
+                        .foregroundStyle(timerManager.isRunning ? .blue : .primary)
                     
-                    // Reset Button
-                    Button(action: { timerManager.reset() }) {
-                        Text("Reset")
-                            .font(.body)
-                            .foregroundStyle(.primary)
+                    // Control Buttons
+                    HStack(spacing: 16) {
+                        // -15s Button
+                        Button(action: { timerManager.addTime(-15) }) {
+                            Text("–15s")
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                        }
+                        
+                        // +15s Button
+                        Button(action: { timerManager.addTime(15) }) {
+                            Text("+15s")
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                        }
+                        
+                        Spacer()
+                        
+                        // Start/Pause Button
+                        Button(action: {
+                            if timerManager.isRunning {
+                                timerManager.pause()
+                            } else {
+                                timerManager.start()
+                            }
+                        }) {
+                            Text(timerManager.isRunning ? "Pause" : "Start")
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                        }
+                        
+                        // Reset Button
+                        Button(action: { timerManager.reset() }) {
+                            Text("Reset")
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                        }
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 20)
-            .background(Color(.systemBackground))
-            .cornerRadius(12)
-            .padding(.horizontal, 12)
-            .padding(.bottom, 12)
+            .background(
+                ZStack {
+                    // Base blur effect
+                    VisualEffectBlur(style: .systemThickMaterial)
+                    
+                    // Additional opacity layer for better readability
+                    Color.white.opacity(0.2)
+                }
+            )
+            .cornerRadius(20)
         }
         .gesture(
             DragGesture()
@@ -139,26 +162,24 @@ struct TimerView: View {
     // MARK: - Minimized View
     
     private var minimizedView: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 0) {
-                Spacer()
-                
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 50, height: 50)
-                
-                Spacer()
-            }
-            
+        VStack(spacing: 0) {
             Text(timerManager.formattedTime)
                 .font(.system(size: 20, weight: .semibold, design: .default))
                 .monospacedDigit()
                 .foregroundStyle(timerManager.isRunning ? .blue : .primary)
                 .frame(maxWidth: .infinity)
+                .frame(height: 50)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .background(
+            ZStack {
+                // Base blur effect - thicker for better opacity
+                VisualEffectBlur(style: .systemThickMaterial)
+                
+                // Additional opacity layer
+                Color.white.opacity(0.2)
+            }
+        )
+        .cornerRadius(20)
         .onTapGesture {
             withAnimation(.easeInOut(duration: 0.3)) {
                 isExpanded = true

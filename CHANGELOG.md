@@ -146,3 +146,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Apple Watch companion app
 - Exercise notes and form tips
 - Workout statistics dashboard
+
+---
+
+## [0.4.0] - 2025-11-29
+
+### Added
+- **Glass Morphism Timer Design**
+  - Modern frosted glass aesthetic matching iOS 15+ design language
+  - Unified glass container for timer header and countdown
+  - Semi-transparent white overlay with blur effect
+  - Consistent visual cohesion between all components
+
+- **Dynamic Scroll Endpoints**
+  - Automatic timer height detection using GeometryReader
+  - Scroll endpoints adapt to expanded/collapsed timer states
+  - Works seamlessly across ContentView and ExerciseDetailView
+  - Eliminates hardcoded values for future-proof design
+
+- **Configurable Timer Duration**
+  - Default timer duration changed from 1:00 to 1:30 (90 seconds)
+  - User-editable timer duration in App Settings
+  - Helpful guide showing common values (60, 90, 120 seconds)
+  - Reset to defaults button includes timer reset
+
+- **Enhanced Navigation Labels**
+  - Main screen title updated from "Workout" to "Target Muscle Group"
+  - Better describes primary navigation purpose
+
+### Improved
+- Timer container now spans full width aligned with Form sections
+- Header and countdown box unified in single glass container
+- No more text bleed-through from background content
+- Better visual separation and professional appearance
+- Responsive height measurements for all screen sizes
+
+### Technical Details
+- `TimerState` observable class with dynamic height tracking
+- `VisualEffectBlur` UIViewRepresentable for native iOS blur effects
+- `systemThickMaterial` blur style for enhanced opacity
+- `TimerManager` init accepts configurable duration parameter
+- `AppSettings` model includes `defaultTimerDuration` property
+- GeometryReader background for automatic size measurement
+- Form-aligned padding matching native iOS design patterns

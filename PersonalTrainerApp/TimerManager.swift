@@ -3,14 +3,15 @@ import UIKit
 
 @Observable
 class TimerManager {
-    var secondsRemaining: Int = 60
+    var secondsRemaining: Int
     var isRunning: Bool = false
     private var timer: Timer?
     
-    private let initialDuration = 60 // Initial 1 minute in seconds
-    private var userSetDuration: Int = 60 // Tracks user-adjusted duration
+    private let initialDuration: Int
+    private var userSetDuration: Int
     
-    init() {
+    init(initialDuration: Int = 90) {
+        self.initialDuration = initialDuration
         self.secondsRemaining = initialDuration
         self.userSetDuration = initialDuration
     }

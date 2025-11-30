@@ -60,7 +60,7 @@ struct ContentView: View {
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                 }
-                .navigationTitle("Workout")
+                .navigationTitle("Target Muscle Group")
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         Button(isEditingOrder ? "Done" : "Edit") {
@@ -94,7 +94,7 @@ struct ContentView: View {
             // Fixed Timer at Bottom
             VStack {
                 Spacer()
-                TimerView(timerState: timerState)
+                TimerView(timerState: timerState, defaultTimerDuration: settings.defaultTimerDuration)
             }
             .ignoresSafeArea(edges: .bottom)
         }
