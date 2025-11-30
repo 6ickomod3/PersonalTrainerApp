@@ -9,12 +9,14 @@ A comprehensive iOS fitness companion for tracking workouts, managing exercises,
 - 📊 **Workout Logging** - Track sets, reps, and weight with automatic timestamps
 - 📈 **Volume Tracking** - Automatic volume calculation (reps × weight) for each set
 - 📅 **Daily Aggregation** - History organized by day with total daily volume display
-- ⚙️ **Per-Exercise Customization** - Configure weight range and step size for individual exercises
+- ⚙️ **Per-Exercise Customization** - Configure weight range, step size, and volume improvement goals per exercise
 - 🗑️ **Smart Data Management** - Configurable data retention (1-30 days) with automatic cleanup
 - ⏱️ **Rest Timer** - Built-in countdown timer (default 1:30) with adjustable ±15s, collapsible glass UI, haptic feedback, and user-configurable duration
 - 🎨 **Glass Morphism Design** - Modern frosted glass aesthetic for timer matching iOS 15+ design language
+- 🎯 **Drag-to-Reorder** - Reorder muscle groups and exercises with Edit mode
 - 💾 **Data Persistence** - Reliable local storage using SwiftData
 - 🔄 **Smart Migrations** - Automatic data handling for app updates
+- 📱 **Professional App Icon** - Custom icon with auto-generated sizes for all devices
 
 ## Getting Started
 
@@ -129,7 +131,7 @@ open PersonalTrainerApp.xcodeproj
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed version history and upcoming features.
 
-**Current Version:** v0.4.0 (November 29, 2025)
+**Current Version:** v1.0.0 (November 30, 2025) - Production Release 🚀
 
 ## Future Roadmap
 

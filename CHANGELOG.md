@@ -5,50 +5,43 @@ All notable changes to Personal Trainer App will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2025-11-29
+## [1.0.0] - 2025-11-30
+
+### Major Release - Production Ready ✨
+
+This release marks the official v1.0 stable version with comprehensive fitness tracking features, professional UI design, and configurable training goals.
 
 ### Added
-- **Muscle Group Management**
-  - 5 pre-loaded default muscle groups (Chest, Back, Leg, Shoulder, Arm)
-  - Create custom muscle groups dynamically
-  - Delete muscle groups with swipe-to-delete
-  - Organized exercise viewing by muscle group
+- **Customizable Volume Improvement Goals**
+  - Per-exercise improvement percentage (default 3%)
+  - Configure target progression for each exercise
+  - Suggested volume calculated based on custom goals
+  - Reset to defaults option in exercise settings
 
-- **Exercise Library**
-  - 10 sample exercises across all muscle groups
-  - Create custom exercises with personalized settings
-  - Set default reps (0-50) and weight (0-200 lbs) per exercise
-  - Delete exercises with swipe-to-delete
+- **Smart Suggested Volume System**
+  - Based on most recent previous workout (excludes today's data)
+  - Uses custom improvement percentage per exercise
+  - Shows dynamic improvement % in Training Progress section
+  - Helps users set realistic daily targets
 
-- **Workout Logging**
-  - Log individual workout sets with reps and weight
-  - Intuitive wheel picker interface for data entry
-  - Automatic timestamp recording for each set
-  - View complete workout history sorted by date/time
-  - Delete previous sets to correct mistakes
+- **Professional App Icon**
+  - Custom app icon with auto-generated sizes
+  - Displays on home screen and in app switcher
+  - High-quality 1024×1024 base image
 
-- **Data Management**
-  - Persistent local storage using SwiftData
-  - Automatic default data seeding on first launch
-  - Smart data migration for future updates
-  - One-tap data reset to restore defaults
-
-- **User Interface**
-  - Clean, hierarchical navigation
-  - Modal sheets for adding muscle groups and exercises
-  - Responsive SwiftUI design
-  - Professional visual layout
+### Enhanced
+- Volume tracking now excludes today's data for unbiased suggestions
+- Training Progress section dynamically shows custom improvement %
+- Exercise settings reorganized with "Training Volume Goals" section
 
 ### Technical Details
-- Built with **SwiftUI** and **SwiftData**
-- MVVM-inspired architecture
-- Automatic data persistence
-- Schema migration support
-- iOS 17+ compatible
+- Schema migration for `volumeImprovementPercent` property
+- Improved date filtering logic for baseline calculations
+- Enhanced settings UI with better organization
 
 ---
 
-## [0.2.0] - 2025-11-29
+## [0.4.0] - 2025-11-29
 
 ### Added
 - **Per-Exercise Customization**
@@ -136,6 +129,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## Core Features (All Versions)
+
+### Muscle Group Organization
+- 5 pre-loaded default muscle groups (Chest, Back, Leg, Shoulder, Arm)
+- Create custom muscle groups dynamically
+- Drag-to-reorder muscle groups with Edit mode
+- Delete muscle groups with swipe-to-delete
+- Organized exercise viewing by muscle group
+
+### Exercise Management
+- 10 sample exercises across all muscle groups
+- Create custom exercises with personalized settings
+- Per-exercise weight customization (min, max, step)
+- Per-exercise volume improvement goals
+- Drag-to-reorder exercises within muscle groups
+- Delete exercises with swipe-to-delete
+- Access exercise settings via gear icon
+
+### Workout Logging & History
+- Log individual workout sets with reps and weight
+- Intuitive wheel picker interface for data entry
+- Automatic timestamp recording for each set
+- View complete workout history organized by date
+- Daily aggregated history with total volume per day
+- Delete previous sets to correct mistakes
+- Automatic data cleanup (1-30 days configurable)
+
+### Volume Tracking & Analytics
+- Automatic volume calculation for each set (reps × weight)
+- Daily aggregated volume totals
+- Previous workout volume reference
+- Customizable suggested volume based on improvement goals
+- Visual progress tracking with blue accent colors
+
+### Rest Timer
+- Built-in countdown timer (default 1:30, customizable)
+- Start/Pause/Reset controls
+- Adjustable ±15 seconds for flexibility
+- Collapsible/Minimizable UI with drag gesture
+- 3-second haptic feedback when complete
+- Modern glass morphism design
+
+### Settings & Customization
+- Per-exercise weight range and step size
+- Per-exercise volume improvement percentage
+- Global timer duration configuration
+- Data retention settings (1-30 days)
+- One-tap reset to defaults
+
+### Technical Foundation
+- Built with **SwiftUI** and **SwiftData**
+- MVVM-inspired reactive architecture
+- Automatic data persistence and migration
+- iOS 17+ compatible
+- No external dependencies
+
+---
+
 ## [Unreleased]
 
 ### Planned Features
@@ -146,6 +197,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Apple Watch companion app
 - Exercise notes and form tips
 - Workout statistics dashboard
+- Dark mode support
+- Export workouts to CSV/PDF
+- Cloud synchronization (iCloud)
 
 ---
 
