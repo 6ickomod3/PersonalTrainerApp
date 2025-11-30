@@ -42,6 +42,9 @@ class Exercise {
     var weightMax: Double = 200.0
     var weightStep: Double = 5.0
     
+    // Volume improvement percentage for suggested volume calculation
+    var volumeImprovementPercent: Double = 3.0
+    
     @Relationship(deleteRule: .cascade) var sets: [WorkoutSet] = []
     
     init(name: String, muscleGroupName: String, defaultReps: Int = 10, defaultWeight: Double = 20.0) {
@@ -56,6 +59,7 @@ class Exercise {
         self.weightMin = 0.0
         self.weightMax = 200.0
         self.weightStep = 5.0
+        self.volumeImprovementPercent = 3.0
     }
     
     /// Cleanup old sets, keeping only the specified number of most recent dates

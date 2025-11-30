@@ -40,16 +40,19 @@ struct ExerciseDetailView: View {
         }.sorted(by: { $0.date > $1.date })
     }
     
-    // Get the last training volume (from most recent date)
+    // Get the last training volume (from most recent date BEFORE today)
     var lastTrainingVolume: Double? {
-        guard let mostRecentDay = setsByDate.first else { return nil }
-        return mostRecentDay.totalVolume
+        let today = Calendar.current.startOfDay(for: Date())
+        let previousDays = setsByDate.filter { $0.date < today }
+        guard let mostRecentPreviousDay = previousDays.first else { return nil }
+        return mostRecentPreviousDay.totalVolume
     }
     
-    // Calculate suggested volume (3% increase from last)
+    // Calculate suggested volume using exercise's custom improvement percentage
     var suggestedVolume: Double? {
         guard let last = lastTrainingVolume else { return nil }
-        return last * 1.03
+        let improvementFactor = 1.0 + (exercise.volumeImprovementPercent / 100.0)
+        return last * improvementFactor
     }
     
     var body: some View {
@@ -75,7 +78,7 @@ struct ExerciseDetailView: View {
                             
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Suggested Volume (3% increase)")
+                                    Text("Suggested Volume (\(String(format: "%.0f", exercise.volumeImprovementPercent))% increase)")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                     Text(String(format: "%.0f", suggested) + " lbs")

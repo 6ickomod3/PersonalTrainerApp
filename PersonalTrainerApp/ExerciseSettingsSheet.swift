@@ -46,11 +46,27 @@ struct ExerciseSettingsSheet: View {
                     }
                 }
                 
-                Section(footer: Text("Customize the weight range and increment for this exercise only.")) {
+                Section(header: Text("Training Volume Goals")) {
+                    HStack {
+                        Text("Target Improvement (%)")
+                        Spacer()
+                        TextField("Improvement %", value: $exercise.volumeImprovementPercent, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 60)
+                    }
+                    
+                    Text("Suggested volume is calculated as: last volume × (1 + improvement %)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                Section(footer: Text("Customize weight settings and training volume goals for this exercise only.")) {
                     Button("Reset to Defaults") {
                         exercise.weightMin = 0.0
                         exercise.weightMax = 200.0
                         exercise.weightStep = 5.0
+                        exercise.volumeImprovementPercent = 3.0
                     }
                     .foregroundStyle(.orange)
                 }
