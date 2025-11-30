@@ -6,11 +6,13 @@ class MuscleGroup {
     var id: UUID
     var name: String
     var createdDate: Date
+    var displayOrder: Int = 0
     
     init(name: String) {
         self.id = UUID()
         self.name = name
         self.createdDate = Date()
+        self.displayOrder = 0
     }
     
     static var defaultGroups: [MuscleGroup] {
@@ -33,6 +35,7 @@ class Exercise {
     var defaultWeight: Double
     var createdDate: Date?
     var lastModifiedDate: Date?
+    var displayOrder: Int = 0
     
     // Weight customization per exercise
     var weightMin: Double = 0.0
@@ -49,6 +52,7 @@ class Exercise {
         self.defaultWeight = defaultWeight
         self.createdDate = Date()
         self.lastModifiedDate = Date()
+        self.displayOrder = 0
         self.weightMin = 0.0
         self.weightMax = 200.0
         self.weightStep = 5.0

@@ -5,6 +5,7 @@ struct ExerciseDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var exercise: Exercise
     @Query private var appSettings: [AppSettings]
+    @Environment(TimerState.self) var timerState
     
     @State private var reps: Int
     @State private var weight: Double
@@ -12,6 +13,12 @@ struct ExerciseDetailView: View {
     
     var settings: AppSettings {
         appSettings.first ?? AppSettings()
+    }
+    
+    // Dynamic spacer height based on timer state and actual measurements
+    var spacerHeight: CGFloat {
+        let timerHeight = timerState.isExpanded ? timerState.expandedHeight : timerState.collapsedHeight
+        return timerHeight > 0 ? timerHeight : (timerState.isExpanded ? 250 : 60)
     }
     
     init(exercise: Exercise) {
@@ -33,9 +40,55 @@ struct ExerciseDetailView: View {
         }.sorted(by: { $0.date > $1.date })
     }
     
+    // Get the last training volume (from most recent date)
+    var lastTrainingVolume: Double? {
+        guard let mostRecentDay = setsByDate.first else { return nil }
+        return mostRecentDay.totalVolume
+    }
+    
+    // Calculate suggested volume (3% increase from last)
+    var suggestedVolume: Double? {
+        guard let last = lastTrainingVolume else { return nil }
+        return last * 1.03
+    }
+    
     var body: some View {
         VStack(spacing: 20) {
             Form {
+                // Suggested Volume Section
+                if let lastVolume = lastTrainingVolume, let suggested = suggestedVolume {
+                    Section(header: Text("Training Progress")) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Last Training Volume")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text(String(format: "%.0f", lastVolume) + " lbs")
+                                        .font(.headline)
+                                        .foregroundStyle(.primary)
+                                }
+                                Spacer()
+                            }
+                            
+                            Divider()
+                            
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Suggested Volume (3% increase)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text(String(format: "%.0f", suggested) + " lbs")
+                                        .font(.headline)
+                                        .foregroundStyle(.blue)
+                                }
+                                Spacer()
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
+                }
+                
                 Section(header: Text("New Set")) {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Reps: \(reps)")
@@ -140,6 +193,13 @@ struct ExerciseDetailView: View {
                         }
                     }
                 }
+                
+                // Dynamic spacer to push scroll endpoint to timer
+                Color.clear
+                    .frame(height: spacerHeight)
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
             }
         }
         .navigationTitle(exercise.name)

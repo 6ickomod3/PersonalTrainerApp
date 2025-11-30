@@ -4,6 +4,7 @@ struct TimerView: View {
     @State var timerManager = TimerManager()
     @State private var isExpanded: Bool = true
     @State private var dragOffset: CGFloat = 0
+    var timerState: TimerState
     
     var body: some View {
         VStack(spacing: 0) {
@@ -15,10 +16,20 @@ struct TimerView: View {
                 // Expanded View
                 expandedView
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    .background(GeometryReader { geo in
+                        Color.clear.onAppear {
+                            timerState.expandedHeight = geo.size.height + 50 // Account for label, padding, borders
+                        }
+                    })
             } else {
                 // Minimized View
                 minimizedView
                     .transition(.opacity.combined(with: .move(edge: .top)))
+                    .background(GeometryReader { geo in
+                        Color.clear.onAppear {
+                            timerState.collapsedHeight = geo.size.height + 2 // Just borders
+                        }
+                    })
             }
             
             // Bottom Border
@@ -27,6 +38,9 @@ struct TimerView: View {
         }
         .background(Color(.systemBackground))
         .padding(.bottom, 24)
+        .onChange(of: isExpanded) { oldValue, newValue in
+            timerState.isExpanded = newValue
+        }
     }
     
     // MARK: - Expanded View
@@ -155,9 +169,10 @@ struct TimerView: View {
 }
 
 #Preview {
+    @Previewable @State var timerState = TimerState()
     VStack {
         Spacer()
-        TimerView()
+        TimerView(timerState: timerState)
     }
     .background(Color(.systemGray6))
 }

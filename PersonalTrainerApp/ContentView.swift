@@ -10,16 +10,24 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var muscleGroups: [MuscleGroup]
+    @Query(sort: \MuscleGroup.displayOrder) private var muscleGroups: [MuscleGroup]
     @Query private var exercises: [Exercise]
     @Query private var appSettings: [AppSettings]
     @State private var showingResetAlert = false
     @State private var showingAddGroupSheet = false
     @State private var showingSettingsSheet = false
     @State private var newGroupName = ""
+    @State private var isEditingOrder = false
+    @State private var timerState = TimerState()
     
     var settings: AppSettings {
         appSettings.first ?? AppSettings()
+    }
+    
+    // Dynamic spacer height based on timer state and actual measurements
+    var spacerHeight: CGFloat {
+        let timerHeight = timerState.isExpanded ? timerState.expandedHeight : timerState.collapsedHeight
+        return timerHeight > 0 ? timerHeight : (timerState.isExpanded ? 250 : 60)
     }
     
     var body: some View {
@@ -27,16 +35,40 @@ struct ContentView: View {
             NavigationStack {
                 List {
                     ForEach(muscleGroups) { group in
-                        NavigationLink(value: group) {
-                            Text(group.name)
+                        HStack(spacing: 12) {
+                            // Drag Handle
+                            if isEditingOrder {
+                                Image(systemName: "line.3.horizontal")
+                                    .foregroundStyle(.secondary)
+                                    .font(.system(size: 14))
+                            }
+                            
+                            NavigationLink(value: group) {
+                                Text(group.name)
+                            }
                         }
                     }
+                    .onMove(perform: moveGroups)
                     .onDelete { indexSet in
                         deleteGroups(at: indexSet)
                     }
+                    
+                    // Dynamic spacer to push scroll endpoint to timer
+                    Color.clear
+                        .frame(height: spacerHeight)
+                        .listRowInsets(EdgeInsets())
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                 }
                 .navigationTitle("Workout")
                 .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(isEditingOrder ? "Done" : "Edit") {
+                            withAnimation {
+                                isEditingOrder.toggle()
+                            }
+                        }
+                    }
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
                             Button("Add Muscle Group") {
@@ -55,13 +87,14 @@ struct ContentView: View {
                 }
                 .navigationDestination(for: MuscleGroup.self) { group in
                     ExerciseListView(muscleGroup: group)
+                        .environment(timerState)
                 }
             }
             
             // Fixed Timer at Bottom
             VStack {
                 Spacer()
-                TimerView()
+                TimerView(timerState: timerState)
             }
             .ignoresSafeArea(edges: .bottom)
         }
@@ -152,6 +185,18 @@ struct ContentView: View {
         } catch {
             print("Failed to reset data: \(error)")
         }
+    }
+    
+    private func moveGroups(from source: IndexSet, to destination: Int) {
+        var updatedGroups = muscleGroups
+        updatedGroups.move(fromOffsets: source, toOffset: destination)
+        
+        // Update displayOrder for all groups
+        for (index, group) in updatedGroups.enumerated() {
+            group.displayOrder = index
+        }
+        
+        try? modelContext.save()
     }
 }
 
