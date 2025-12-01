@@ -190,3 +190,54 @@ import Testing
         #expect(exercise.sets.count == 1)
     }
 }
+
+@Suite("ExerciseDetailViewModel Tests")
+struct ExerciseDetailViewModelTests {
+    @MainActor
+    @Test func testViewModelLogic() throws {
+        // 1. Setup
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: Exercise.self, MuscleGroup.self, WorkoutSet.self, configurations: config)
+        let context = container.mainContext
+        
+        let exercise = Exercise(name: "Squat", muscleGroupName: "Legs")
+        context.insert(exercise)
+        
+        let vm = ExerciseDetailViewModel(exercise: exercise, modelContext: context)
+        
+        // 2. Test Add Set
+        vm.reps = 5
+        vm.weight = 100
+        vm.addSet()
+        
+        #expect(exercise.sets.count == 1)
+        #expect(exercise.sets.first?.reps == 5)
+        #expect(exercise.sets.first?.weight == 100)
+        
+        // 3. Test Volume Calculation
+        // 5 * 100 = 500
+        #expect(vm.setsByDate.first?.totalVolume == 500)
+        
+        // 4. Test Grouping (Add set for yesterday)
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+        let oldSet = WorkoutSet(reps: 10, weight: 100, date: yesterday)
+        context.insert(oldSet)
+        exercise.sets.append(oldSet)
+        
+        #expect(vm.setsByDate.count == 2) // Today and Yesterday
+        
+        // 5. Test Suggested Volume
+        // Last volume (yesterday) = 1000
+        // Improvement = 2% (default) -> 1020
+        #expect(vm.lastTrainingVolume == 1000)
+        // Default improvement is 2.0
+        #expect(vm.suggestedVolume == 1020)
+        
+        // 6. Test Delete Set
+        let setToDelete = exercise.sets.first(where: { $0.reps == 5 })! // The one we added first
+        vm.deleteSet(setToDelete)
+        
+        #expect(exercise.sets.count == 1) // Only yesterday's set remains
+        #expect(exercise.sets.first?.date == yesterday)
+    }
+}

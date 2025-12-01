@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		6D6708452EDD302B00664C7F /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D6708442EDD302B00664C7F /* WidgetKit.framework */; };
+		6D6708472EDD302B00664C7F /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D6708462EDD302B00664C7F /* SwiftUI.framework */; };
+		6D6708582EDD302C00664C7F /* PersonalTrainerAppRestTimerWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6D6708422EDD302B00664C7F /* PersonalTrainerAppRestTimerWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		6D43F9EE2EDA709C0048DBBF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,17 +27,61 @@
 			remoteGlobalIDString = 6D43F9DF2EDA709B0048DBBF;
 			remoteInfo = PersonalTrainerApp;
 		};
+		6D6708562EDD302C00664C7F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6D43F9D82EDA709B0048DBBF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6D6708412EDD302B00664C7F;
+			remoteInfo = PersonalTrainerAppRestTimerWidgetExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		6D67085D2EDD302C00664C7F /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				6D6708582EDD302C00664C7F /* PersonalTrainerAppRestTimerWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		6D43F9E02EDA709B0048DBBF /* PersonalTrainerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PersonalTrainerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D43F9ED2EDA709C0048DBBF /* PersonalTrainerAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PersonalTrainerAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D43F9F72EDA709C0048DBBF /* PersonalTrainerAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PersonalTrainerAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		6D6708422EDD302B00664C7F /* PersonalTrainerAppRestTimerWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PersonalTrainerAppRestTimerWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		6D6708442EDD302B00664C7F /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		6D6708462EDD302B00664C7F /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		6D6708592EDD302C00664C7F /* Exceptions for "PersonalTrainerAppRestTimerWidget" folder in "PersonalTrainerAppRestTimerWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 6D6708412EDD302B00664C7F /* PersonalTrainerAppRestTimerWidgetExtension */;
+		};
+		6D67085F2EDD329A00664C7F /* Exceptions for "PersonalTrainerApp" folder in "PersonalTrainerAppRestTimerWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				TimerAttributes.swift,
+			);
+			target = 6D6708412EDD302B00664C7F /* PersonalTrainerAppRestTimerWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		6D43F9E22EDA709B0048DBBF /* PersonalTrainerApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6D67085F2EDD329A00664C7F /* Exceptions for "PersonalTrainerApp" folder in "PersonalTrainerAppRestTimerWidgetExtension" target */,
+			);
 			path = PersonalTrainerApp;
 			sourceTree = "<group>";
 		};
@@ -43,6 +93,14 @@
 		6D43F9FA2EDA709C0048DBBF /* PersonalTrainerAppUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = PersonalTrainerAppUITests;
+			sourceTree = "<group>";
+		};
+		6D6708482EDD302B00664C7F /* PersonalTrainerAppRestTimerWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6D6708592EDD302C00664C7F /* Exceptions for "PersonalTrainerAppRestTimerWidget" folder in "PersonalTrainerAppRestTimerWidgetExtension" target */,
+			);
+			path = PersonalTrainerAppRestTimerWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -69,6 +127,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		6D67083F2EDD302B00664C7F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6D6708472EDD302B00664C7F /* SwiftUI.framework in Frameworks */,
+				6D6708452EDD302B00664C7F /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -78,6 +145,8 @@
 				6D43F9E22EDA709B0048DBBF /* PersonalTrainerApp */,
 				6D43F9F02EDA709C0048DBBF /* PersonalTrainerAppTests */,
 				6D43F9FA2EDA709C0048DBBF /* PersonalTrainerAppUITests */,
+				6D6708482EDD302B00664C7F /* PersonalTrainerAppRestTimerWidget */,
+				6D6708432EDD302B00664C7F /* Frameworks */,
 				6D43F9E12EDA709B0048DBBF /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,8 +157,18 @@
 				6D43F9E02EDA709B0048DBBF /* PersonalTrainerApp.app */,
 				6D43F9ED2EDA709C0048DBBF /* PersonalTrainerAppTests.xctest */,
 				6D43F9F72EDA709C0048DBBF /* PersonalTrainerAppUITests.xctest */,
+				6D6708422EDD302B00664C7F /* PersonalTrainerAppRestTimerWidgetExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		6D6708432EDD302B00664C7F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				6D6708442EDD302B00664C7F /* WidgetKit.framework */,
+				6D6708462EDD302B00664C7F /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -102,10 +181,12 @@
 				6D43F9DC2EDA709B0048DBBF /* Sources */,
 				6D43F9DD2EDA709B0048DBBF /* Frameworks */,
 				6D43F9DE2EDA709B0048DBBF /* Resources */,
+				6D67085D2EDD302C00664C7F /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				6D6708572EDD302C00664C7F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				6D43F9E22EDA709B0048DBBF /* PersonalTrainerApp */,
@@ -163,6 +244,28 @@
 			productReference = 6D43F9F72EDA709C0048DBBF /* PersonalTrainerAppUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		6D6708412EDD302B00664C7F /* PersonalTrainerAppRestTimerWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6D67085A2EDD302C00664C7F /* Build configuration list for PBXNativeTarget "PersonalTrainerAppRestTimerWidgetExtension" */;
+			buildPhases = (
+				6D67083E2EDD302B00664C7F /* Sources */,
+				6D67083F2EDD302B00664C7F /* Frameworks */,
+				6D6708402EDD302B00664C7F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				6D6708482EDD302B00664C7F /* PersonalTrainerAppRestTimerWidget */,
+			);
+			name = PersonalTrainerAppRestTimerWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = PersonalTrainerAppRestTimerWidgetExtension;
+			productReference = 6D6708422EDD302B00664C7F /* PersonalTrainerAppRestTimerWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -184,6 +287,9 @@
 						CreatedOnToolsVersion = 16.4;
 						TestTargetID = 6D43F9DF2EDA709B0048DBBF;
 					};
+					6D6708412EDD302B00664C7F = {
+						CreatedOnToolsVersion = 16.4;
+					};
 				};
 			};
 			buildConfigurationList = 6D43F9DB2EDA709B0048DBBF /* Build configuration list for PBXProject "PersonalTrainerApp" */;
@@ -203,6 +309,7 @@
 				6D43F9DF2EDA709B0048DBBF /* PersonalTrainerApp */,
 				6D43F9EC2EDA709C0048DBBF /* PersonalTrainerAppTests */,
 				6D43F9F62EDA709C0048DBBF /* PersonalTrainerAppUITests */,
+				6D6708412EDD302B00664C7F /* PersonalTrainerAppRestTimerWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -223,6 +330,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		6D43F9F52EDA709C0048DBBF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6D6708402EDD302B00664C7F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -253,6 +367,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		6D67083E2EDD302B00664C7F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -265,6 +386,11 @@
 			isa = PBXTargetDependency;
 			target = 6D43F9DF2EDA709B0048DBBF /* PersonalTrainerApp */;
 			targetProxy = 6D43F9F82EDA709C0048DBBF /* PBXContainerItemProxy */;
+		};
+		6D6708572EDD302C00664C7F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6D6708412EDD302B00664C7F /* PersonalTrainerAppRestTimerWidgetExtension */;
+			targetProxy = 6D6708562EDD302C00664C7F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -400,6 +526,8 @@
 				DEVELOPMENT_TEAM = FJ47H5G4MH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -428,6 +556,8 @@
 				DEVELOPMENT_TEAM = FJ47H5G4MH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -518,6 +648,60 @@
 			};
 			name = Release;
 		};
+		6D67085B2EDD302C00664C7F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = FJ47H5G4MH;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PersonalTrainerAppRestTimerWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PersonalTrainerAppRestTimerWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = jdai.PersonalTrainerApp.PersonalTrainerAppRestTimerWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		6D67085C2EDD302C00664C7F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = FJ47H5G4MH;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PersonalTrainerAppRestTimerWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PersonalTrainerAppRestTimerWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = jdai.PersonalTrainerApp.PersonalTrainerAppRestTimerWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -553,6 +737,15 @@
 			buildConfigurations = (
 				6D43FA082EDA709C0048DBBF /* Debug */,
 				6D43FA092EDA709C0048DBBF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6D67085A2EDD302C00664C7F /* Build configuration list for PBXNativeTarget "PersonalTrainerAppRestTimerWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6D67085B2EDD302C00664C7F /* Debug */,
+				6D67085C2EDD302C00664C7F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
