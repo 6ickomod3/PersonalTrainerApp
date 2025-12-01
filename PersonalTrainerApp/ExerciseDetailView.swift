@@ -66,33 +66,49 @@ struct ExerciseDetailView: View {
                             }
                         }
                         
-                        Section(header: Text("New Set")) {
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Reps: \(vm.reps)")
-                                    .font(.headline)
-                                Picker("Reps", selection: Bindable(vm).reps) {
-                                    ForEach(0...50, id: \.self) { rep in
-                                        Text("\(rep)").tag(rep)
-                                    }
-                                }
-                                .pickerStyle(.wheel)
-                                .frame(height: 150)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Weight (lbs): \(vm.weight, specifier: "%.1f")")
-                                    .font(.headline)
-                                Picker("Weight", selection: Bindable(vm).weight) {
-                                    ForEach(Array(stride(from: exercise.weightMin, through: exercise.weightMax, by: exercise.weightStep)), id: \.self) { w in
-                                        Text(String(format: "%.1f", w)).tag(w)
-                                    }
-                                }
-                                .pickerStyle(.wheel)
-                                .frame(height: 150)
-                            }
-                            
-                            Button("Add Set") {
+                        Section(header: Text("Log a set")) {
+                            // Add Set Button at the top
+                            Button(action: {
                                 vm.addSet()
+                            }) {
+                                Text("Add Set")
+                                    .frame(maxWidth: .infinity)
+                                    .bold()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .listRowInsets(EdgeInsets()) // Make button full width
+                            .padding()
+                            
+                            HStack(spacing: 0) {
+                                // Left Column: Reps
+                                VStack(spacing: 5) {
+                                    Text("Reps: \(vm.reps)")
+                                        .font(.headline)
+                                    Picker("Reps", selection: Bindable(vm).reps) {
+                                        ForEach(0...50, id: \.self) { rep in
+                                            Text("\(rep)").tag(rep)
+                                        }
+                                    }
+                                    .pickerStyle(.wheel)
+                                    .frame(height: 120)
+                                }
+                                .frame(maxWidth: .infinity)
+                                
+                                Divider()
+                                
+                                // Right Column: Weight
+                                VStack(spacing: 5) {
+                                    Text("lbs: \(vm.weight, specifier: "%.1f")")
+                                        .font(.headline)
+                                    Picker("Weight", selection: Bindable(vm).weight) {
+                                        ForEach(Array(stride(from: exercise.weightMin, through: exercise.weightMax, by: exercise.weightStep)), id: \.self) { w in
+                                            Text(String(format: "%.0f", w)).tag(w)
+                                        }
+                                    }
+                                    .pickerStyle(.wheel)
+                                    .frame(height: 120)
+                                }
+                                .frame(maxWidth: .infinity)
                             }
                         }
                         

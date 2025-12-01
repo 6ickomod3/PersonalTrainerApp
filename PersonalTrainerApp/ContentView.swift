@@ -20,6 +20,10 @@ struct ContentView: View {
     @State private var isEditingOrder = false
     @State private var timerState = TimerState()
     
+    // Rename State
+    @State private var muscleGroupToRename: MuscleGroup?
+    @State private var newName = ""
+    
     var settings: AppSettings {
         appSettings.first ?? AppSettings()
     }
@@ -36,11 +40,17 @@ struct ContentView: View {
                 List {
                     ForEach(muscleGroups) { group in
                         HStack(spacing: 12) {
-                            // Drag Handle
+                            // Rename Button (Visible only in Edit Mode)
                             if isEditingOrder {
-                                Image(systemName: "line.3.horizontal")
-                                    .foregroundStyle(.secondary)
-                                    .font(.system(size: 14))
+                                Button {
+                                    muscleGroupToRename = group
+                                    newName = group.name
+                                } label: {
+                                    Image(systemName: "pencil.circle.fill")
+                                        .foregroundStyle(.orange)
+                                        .font(.title2)
+                                }
+                                .buttonStyle(.borderless)
                             }
                             
                             NavigationLink(value: group) {
@@ -60,20 +70,23 @@ struct ContentView: View {
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                 }
+                .environment(\.editMode, .constant(isEditingOrder ? .active : .inactive))
                 .navigationTitle("Target Muscle Group")
+                .alert("Rename Muscle Group", isPresented: Binding(
+                    get: { muscleGroupToRename != nil },
+                    set: { if !$0 { muscleGroupToRename = nil } }
+                )) {
+                    TextField("New Name", text: $newName)
+                    Button("Cancel", role: .cancel) { }
+                    Button("Save") {
+                        saveMuscleGroupRename()
+                    }
+                } message: {
+                    Text("Enter a new name for this muscle group.")
+                }
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button(isEditingOrder ? "Done" : "Edit") {
-                            withAnimation {
-                                isEditingOrder.toggle()
-                            }
-                        }
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
                         Menu {
-                            Button("Add Muscle Group") {
-                                showingAddGroupSheet = true
-                            }
                             Button("Settings", systemImage: "gear") {
                                 showingSettingsSheet = true
                             }
@@ -82,6 +95,22 @@ struct ContentView: View {
                             }
                         } label: {
                             Label("Menu", systemImage: "ellipsis.circle")
+                        }
+                    }
+                    
+                    ToolbarItem(placement: .topBarTrailing) {
+                        HStack {
+                            if isEditingOrder {
+                                Button(action: { showingAddGroupSheet = true }) {
+                                    Image(systemName: "plus")
+                                }
+                            }
+                            
+                            Button(isEditingOrder ? "Done" : "Edit") {
+                                withAnimation {
+                                    isEditingOrder.toggle()
+                                }
+                            }
                         }
                     }
                 }
@@ -185,6 +214,28 @@ struct ContentView: View {
         } catch {
             print("Failed to reset data: \(error)")
         }
+    }
+    
+    private func saveMuscleGroupRename() {
+        guard let group = muscleGroupToRename, !newName.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        
+        let oldName = group.name
+        group.name = newName
+        
+        // Update all exercises that belong to this group
+        // We need to do this because the relationship is currently based on the string name
+        do {
+            let descriptor = FetchDescriptor<Exercise>(predicate: #Predicate { $0.muscleGroupName == oldName })
+            let exercises = try modelContext.fetch(descriptor)
+            for exercise in exercises {
+                exercise.muscleGroupName = newName
+            }
+            try modelContext.save()
+        } catch {
+            print("Error updating exercises: \(error)")
+        }
+        
+        muscleGroupToRename = nil
     }
     
     private func moveGroups(from source: IndexSet, to destination: Int) {

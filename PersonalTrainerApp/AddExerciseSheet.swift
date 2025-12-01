@@ -3,41 +3,67 @@ import SwiftUI
 struct AddExerciseSheet: View {
     @Binding var isPresented: Bool
     let muscleGroupName: String
-    var onAdd: (String, Int, Double) -> Void
+    // Callback: name, weightMin, weightMax, weightStep, volumeImprovementPercent
+    var onAdd: (String, Double, Double, Double, Double) -> Void
     
     @State private var exerciseName = ""
-    @State private var defaultReps = 10
-    @State private var defaultWeight = 20.0
+    @State private var weightMin = 0.0
+    @State private var weightMax = 200.0
+    @State private var weightStep = 5.0
+    @State private var volumeImprovementPercent = 3.0
     
     var body: some View {
         NavigationStack {
             Form {
                 Section(header: Text("Exercise Details")) {
                     TextField("Exercise Name", text: $exerciseName)
-                    
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Default Reps: \(defaultReps)")
-                            .font(.headline)
-                        Picker("Default Reps", selection: $defaultReps) {
-                            ForEach(1...50, id: \.self) { rep in
-                                Text("\(rep)").tag(rep)
-                            }
-                        }
-                        .pickerStyle(.wheel)
-                        .frame(height: 100)
+                }
+                
+                Section(header: Text("Weight Configuration")) {
+                    HStack {
+                        Text("Min Weight")
+                        Spacer()
+                        TextField("0", value: $weightMin, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("lbs")
                     }
                     
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Default Weight (lbs): \(defaultWeight, specifier: "%.0f")")
-                            .font(.headline)
-                        Picker("Default Weight", selection: $defaultWeight) {
-                            ForEach(Array(stride(from: 0.0, through: 200.0, by: 5.0)), id: \.self) { w in
-                                Text("\(Int(w))").tag(w)
-                            }
-                        }
-                        .pickerStyle(.wheel)
-                        .frame(height: 100)
+                    HStack {
+                        Text("Max Weight")
+                        Spacer()
+                        TextField("200", value: $weightMax, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("lbs")
                     }
+                    
+                    HStack {
+                        Text("Step Increment")
+                        Spacer()
+                        TextField("5", value: $weightStep, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("lbs")
+                    }
+                }
+                
+                Section(header: Text("Progression Goal")) {
+                    HStack {
+                        Text("Volume Increase")
+                        Spacer()
+                        TextField("3", value: $volumeImprovementPercent, format: .number)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                        Text("%")
+                    }
+                    Text("Suggested volume will increase by this percentage each session.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("Add Exercise")
@@ -51,7 +77,7 @@ struct AddExerciseSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Add") {
                         if !exerciseName.trimmingCharacters(in: .whitespaces).isEmpty {
-                            onAdd(exerciseName, defaultReps, defaultWeight)
+                            onAdd(exerciseName, weightMin, weightMax, weightStep, volumeImprovementPercent)
                             isPresented = false
                         }
                     }

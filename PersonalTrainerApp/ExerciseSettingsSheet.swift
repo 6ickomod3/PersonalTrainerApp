@@ -9,6 +9,10 @@ struct ExerciseSettingsSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section(header: Text("Exercise Name")) {
+                    TextField("Name", text: $exercise.name)
+                }
+                
                 Section(header: Text("Weight Logging Settings")) {
                     HStack {
                         Text("Minimum Weight (lbs)")
@@ -71,7 +75,7 @@ struct ExerciseSettingsSheet: View {
                     .foregroundStyle(.orange)
                 }
             }
-            .navigationTitle("Weight Settings")
+            .navigationTitle("Exercise Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

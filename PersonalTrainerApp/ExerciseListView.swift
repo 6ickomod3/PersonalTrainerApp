@@ -9,6 +9,12 @@ struct ExerciseListView: View {
     @State private var isEditingOrder = false
     @Environment(TimerState.self) var timerState
     
+    @State private var newlyCreatedExercise: Exercise?
+    @State private var isNavigatingToNew = false
+    
+    @State private var exerciseToRename: Exercise?
+    @State private var newName = ""
+    
     var exercises: [Exercise] {
         allExercises
             .filter { $0.muscleGroupName == muscleGroup.name }
@@ -19,11 +25,17 @@ struct ExerciseListView: View {
         List {
             ForEach(exercises) { exercise in
                 HStack(spacing: 12) {
-                    // Drag Handle
+                    // Rename Button (Visible only in Edit Mode)
                     if isEditingOrder {
-                        Image(systemName: "line.3.horizontal")
-                            .foregroundStyle(.secondary)
-                            .font(.system(size: 14))
+                        Button {
+                            exerciseToRename = exercise
+                            newName = exercise.name
+                        } label: {
+                            Image(systemName: "pencil.circle.fill")
+                                .foregroundStyle(.orange)
+                                .font(.title2)
+                        }
+                        .buttonStyle(.borderless)
                     }
                     
                     NavigationLink(destination: ExerciseDetailView(exercise: exercise).environment(timerState)) {
@@ -36,33 +48,67 @@ struct ExerciseListView: View {
                 deleteExercises(at: indexSet)
             }
         }
+        .environment(\.editMode, .constant(isEditingOrder ? .active : .inactive))
         .navigationTitle(muscleGroup.name)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button(isEditingOrder ? "Done" : "Edit") {
-                    withAnimation {
-                        isEditingOrder.toggle()
-                    }
+        .navigationDestination(isPresented: $isNavigatingToNew) {
+            if let newExercise = newlyCreatedExercise {
+                ExerciseDetailView(exercise: newExercise)
+                    .environment(timerState)
+            }
+        }
+        .alert("Rename Exercise", isPresented: Binding(
+            get: { exerciseToRename != nil },
+            set: { if !$0 { exerciseToRename = nil } }
+        )) {
+            TextField("New Name", text: $newName)
+            Button("Cancel", role: .cancel) { }
+            Button("Save") {
+                if let exercise = exerciseToRename, !newName.trimmingCharacters(in: .whitespaces).isEmpty {
+                    exercise.name = newName
+                    try? modelContext.save()
                 }
             }
+        } message: {
+            Text("Enter a new name for this exercise.")
+        }
+        .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(action: { showingAddExerciseSheet = true }) {
-                    Label("Add", systemImage: "plus.circle")
+                HStack {
+                    if isEditingOrder {
+                        Button(action: { showingAddExerciseSheet = true }) {
+                            Image(systemName: "plus")
+                        }
+                    }
+                    
+                    Button(isEditingOrder ? "Done" : "Edit") {
+                        withAnimation {
+                            isEditingOrder.toggle()
+                        }
+                    }
                 }
             }
         }
         .sheet(isPresented: $showingAddExerciseSheet) {
-            AddExerciseSheet(isPresented: $showingAddExerciseSheet, muscleGroupName: muscleGroup.name) { name, reps, weight in
-                addExercise(name: name, defaultReps: reps, defaultWeight: weight)
+            AddExerciseSheet(isPresented: $showingAddExerciseSheet, muscleGroupName: muscleGroup.name) { name, min, max, step, percent in
+                addExercise(name: name, weightMin: min, weightMax: max, weightStep: step, volumeImprovementPercent: percent)
             }
         }
     }
     
-    private func addExercise(name: String, defaultReps: Int, defaultWeight: Double) {
-        let newExercise = Exercise(name: name, muscleGroupName: muscleGroup.name, defaultReps: defaultReps, defaultWeight: defaultWeight)
+    private func addExercise(name: String, weightMin: Double, weightMax: Double, weightStep: Double, volumeImprovementPercent: Double) {
+        let newExercise = Exercise(name: name, muscleGroupName: muscleGroup.name)
+        newExercise.weightMin = weightMin
+        newExercise.weightMax = weightMax
+        newExercise.weightStep = weightStep
+        newExercise.volumeImprovementPercent = volumeImprovementPercent
         newExercise.displayOrder = exercises.count
+        
         modelContext.insert(newExercise)
         try? modelContext.save()
+        
+        // Trigger navigation
+        newlyCreatedExercise = newExercise
+        isNavigatingToNew = true
     }
     
     private func deleteExercises(at indexSet: IndexSet) {
