@@ -5,6 +5,62 @@ All notable changes to Personal Trainer App will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-11-30
+
+### Major Update - Refinement & Polish 💎
+
+This release focuses on refining the user experience with a native edit mode, improved navigation flows, and a significant rebranding to **Sigma Training**. It also introduces Live Activities for the timer and critical bug fixes.
+
+### Added
+- **Native Edit Mode**
+  - Unified "Edit" button in the top-right corner
+  - Consolidated Add, Delete, Rename, and Reorder actions
+  - Clean UI with dedicated controls for each action
+  - Removed swipe actions to prevent accidental deletions
+  - Safe and intuitive list management
+
+- **Live Activities & Lock Screen Timer**
+  - Track rest intervals directly from the Lock Screen
+  - Dynamic Island support for iPhone 14 Pro/15 Pro
+  - Real-time countdown updates while app is in background
+  - Interactive widget for instant status checks
+
+- **Timer Alarm**
+  - Audio feedback when timer completes
+  - Works in background with local notifications
+  - "Calypso" sound alert for gentle notification
+
+- **Enhanced Add Exercise Flow**
+  - New input fields for Weight Range (Min, Max, Step)
+  - New input for Volume Improvement Goal (%)
+  - Auto-navigation to the newly created exercise
+  - Streamlined creation process
+
+### Changed
+- **Rebranding**
+  - App renamed to **Sigma Training**
+  - Updated display name on Home Screen
+
+- **UI/UX Improvements**
+  - Moved Menu button (⋯) to top-left for better reachability
+  - Consolidated Edit and Add buttons in top-right
+  - Side-by-side picker layout in Exercise Detail for compact logging
+  - "Log a set" section redesigned for better usability
+
+### Fixed
+- **Critical Data Safety**
+  - Fixed data corruption when renaming Muscle Groups (cascading updates)
+  - Fixed issue where deleting one set deleted all sets for the day
+  - Fixed validation errors during deletion
+  - Implemented bidirectional relationships in SwiftData models
+
+### Technical Details
+- Refactored `ExerciseDetailView` to MVVM architecture
+- Implemented `TimerWidget` extension for Live Activities
+- Optimized build performance and reduced closure complexity
+
+---
+
 ## [1.0.0] - 2025-11-30
 
 ### Major Release - Production Ready ✨

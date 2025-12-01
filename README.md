@@ -1,4 +1,5 @@
-# Personal Trainer App
+# Sigma Training
+(Formerly Personal Trainer App)
 
 A comprehensive iOS fitness companion for tracking workouts, managing exercises, and organizing your training routine by muscle group.
 
@@ -11,9 +12,9 @@ A comprehensive iOS fitness companion for tracking workouts, managing exercises,
 - 📅 **Daily Aggregation** - History organized by day with total daily volume display
 - ⚙️ **Per-Exercise Customization** - Configure weight range, step size, and volume improvement goals per exercise
 - 🗑️ **Smart Data Management** - Configurable data retention (1-30 days) with automatic cleanup
-- ⏱️ **Rest Timer** - Built-in countdown timer (default 1:30) with adjustable ±15s, collapsible glass UI, haptic feedback, and user-configurable duration
+- ⏱️ **Rest Timer & Live Activities** - Built-in countdown timer with Lock Screen support, Dynamic Island integration, and background alarms
+- ✏️ **Native Edit Mode** - Safe and intuitive management for adding, deleting, renaming, and reordering items
 - 🎨 **Glass Morphism Design** - Modern frosted glass aesthetic for timer matching iOS 15+ design language
-- 🎯 **Drag-to-Reorder** - Reorder muscle groups and exercises with Edit mode
 - 💾 **Data Persistence** - Reliable local storage using SwiftData
 - 🔄 **Smart Migrations** - Automatic data handling for app updates
 - 📱 **Professional App Icon** - Custom icon with auto-generated sizes for all devices
@@ -131,7 +132,7 @@ open PersonalTrainerApp.xcodeproj
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed version history and upcoming features.
 
-**Current Version:** v1.0.0 (November 30, 2025) - Production Release 🚀
+**Current Version:** v1.1.0 (November 30, 2025) - Production Release 🚀
 
 ## Future Roadmap
 
