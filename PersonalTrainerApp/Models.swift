@@ -45,7 +45,7 @@ class Exercise {
     // Volume improvement percentage for suggested volume calculation
     var volumeImprovementPercent: Double = 3.0
     
-    @Relationship(deleteRule: .cascade) var sets: [WorkoutSet] = []
+    @Relationship(deleteRule: .cascade, inverse: \WorkoutSet.exercise) var sets: [WorkoutSet] = []
     
     init(name: String, muscleGroupName: String, defaultReps: Int = 10, defaultWeight: Double = 20.0) {
         self.id = UUID()
@@ -81,8 +81,9 @@ class Exercise {
             return !datesToKeep.contains(setDate)
         }
         
+        // Remove directly from array instead of using modelContext.delete()
         for set in setsToDelete {
-            modelContext.delete(set)
+            sets.removeAll { $0.id == set.id }
         }
         
         if !setsToDelete.isEmpty {
@@ -93,11 +94,10 @@ class Exercise {
 
 @Model
 class WorkoutSet {
-    var id: UUID
-    var reps: Int
-    var weight: Double
-    var date: Date
-    
+    var id: UUID = UUID()
+    var reps: Int = 0
+    var weight: Double = 0.0
+    var date: Date = Date()
     var exercise: Exercise?
     
     // Computed volume (reps × weight)

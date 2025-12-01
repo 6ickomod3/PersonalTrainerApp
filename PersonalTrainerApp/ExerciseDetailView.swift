@@ -120,6 +120,9 @@ struct ExerciseDetailView: View {
                     Button("Add Set") {
                         let newSet = WorkoutSet(reps: reps, weight: weight)
                         exercise.sets.append(newSet)
+                        // Fix: Explicitly insert and save to prevent "nil" validation errors later
+                        modelContext.insert(newSet)
+                        try? modelContext.save()
                     }
                 }
                 
@@ -173,12 +176,19 @@ struct ExerciseDetailView: View {
                                             }
                                             Spacer()
                                             Button(action: {
+                                                print("Deleting set with ID: \(set.id)")
+                                                // Fix: Manually remove from relationship first to ensure UI updates correctly
+                                                if let index = exercise.sets.firstIndex(where: { $0.id == set.id }) {
+                                                    exercise.sets.remove(at: index)
+                                                }
                                                 modelContext.delete(set)
+                                                try? modelContext.save()
                                             }) {
                                                 Image(systemName: "trash.fill")
                                                     .font(.caption)
                                                     .foregroundStyle(.red)
                                             }
+                                            .buttonStyle(.borderless) // Fix: Prevent list row from hijacking taps
                                         }
                                         .padding(.vertical, 6)
                                         
