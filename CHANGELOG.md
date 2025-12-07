@@ -39,6 +39,16 @@ This release introduces a completely redesigned Home Screen with a unified dashb
 - **Visual Extensions**
   - Timer view now functions as a full-width bottom sheet with improved safe area handling.
   - Muscle Group cards feature primary text color for better readability in Light Mode.
+  - **Unified List Styling**: "Exercises" list now matches the Card-style visual design of Warm-up and Cool-down sections.
+  - **Color Hierarchy**: 
+    - Strength Cards use **Red** text to match the header.
+    - Warm-up items use **Orange** text.
+    - Cool-down items use **Blue** text.
+    - Exercise items use **Black** (.primary) text.
+
+### Fixed
+- **Alignment**: Fixed indentation inconsistency in the Exercise list to align perfectly with other guide items.
+- **Link Styling**: Removed default blue tint from Navigation Links in the exercise list.
 
 ### Technical Details
 - Implemented `CardioLog` SwiftData model.
