@@ -14,6 +14,6 @@ struct PersonalTrainerAppApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [Exercise.self, MuscleGroup.self, WorkoutSet.self, AppSettings.self])
+        .modelContainer(for: [Exercise.self, MuscleGroup.self, WorkoutSet.self, AppSettings.self, CardioLog.self])
     }
 }

@@ -5,12 +5,10 @@ A comprehensive iOS fitness companion for tracking workouts, managing exercises,
 
 ## Features
 
-- 📋 **Muscle Group Organization** - Organize exercises by muscle groups with custom group creation
-- 💪 **Exercise Library** - Pre-loaded exercises with ability to add custom ones
-- 📊 **Workout Logging** - Track sets, reps, and weight with automatic timestamps
-- 📈 **Volume Tracking** - Automatic volume calculation (reps × weight) for each set
-- 📅 **Daily Aggregation** - History organized by day with total daily volume display
-- ⚙️ **Per-Exercise Customization** - Configure weight range, step size, and volume improvement goals per exercise
+- 📋 **unified Dashboard** - All-in-one view with Strength, Cardio, and Calendar tracking
+- 💪 **comprehensive Guides** - Workouts now include Warm-up and Cool-down sections with detailed instructions
+- 🏃 **Cardio Logging** - Track runs, cycles, and more with daily filtering
+- 📅 **Activity Calendar** - Visual monthly history with color-coded workout dots
 - 🗑️ **Smart Data Management** - Configurable data retention (1-30 days) with automatic cleanup
 - ⏱️ **Rest Timer & Live Activities** - Built-in countdown timer with Lock Screen support, Dynamic Island integration, and background alarms
 - ✏️ **Native Edit Mode** - Safe and intuitive management for adding, deleting, renaming, and reordering items
@@ -132,7 +130,7 @@ open PersonalTrainerApp.xcodeproj
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed version history and upcoming features.
 
-**Current Version:** v1.1.0 (November 30, 2025) - Production Release 🚀
+**Current Version:** v1.2.0 (December 7, 2025) - The Complete Dashboard Update ⭐️
 
 ## Future Roadmap
 

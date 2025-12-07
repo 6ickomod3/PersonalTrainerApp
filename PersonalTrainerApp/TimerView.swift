@@ -15,7 +15,7 @@ struct VisualEffectBlur: UIViewRepresentable {
 
 struct TimerView: View {
     @State var timerManager: TimerManager
-    @State private var isExpanded: Bool = true
+    @State private var isExpanded: Bool = false
     @State private var dragOffset: CGFloat = 0
     var timerState: TimerState
     var defaultTimerDuration: Int = 90
@@ -48,7 +48,6 @@ struct TimerView: View {
                     })
             }
         }
-        .padding(.bottom, 24)
         .onChange(of: isExpanded) { oldValue, newValue in
             timerState.isExpanded = newValue
         }
@@ -130,19 +129,19 @@ struct TimerView: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 16)
+                .padding(.bottom, 50)
             }
             .background(
                 ZStack {
-                    // Base blur effect
                     VisualEffectBlur(style: .systemThickMaterial)
-                    
-                    // Additional opacity layer for better readability
                     Color.white.opacity(0.2)
                 }
+                .ignoresSafeArea(edges: .bottom)
             )
-            .cornerRadius(20)
+            .clipShape(UnevenRoundedRectangle(topLeadingRadius: 20, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 20))
+            .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: -2)
         }
+        .padding(.horizontal)
         .gesture(
             DragGesture()
                 .onChanged { value in
@@ -169,17 +168,18 @@ struct TimerView: View {
                 .foregroundStyle(timerManager.isRunning ? .blue : .primary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
+                .padding(.bottom, 20)
         }
         .background(
             ZStack {
-                // Base blur effect - thicker for better opacity
                 VisualEffectBlur(style: .systemThickMaterial)
-                
-                // Additional opacity layer
                 Color.white.opacity(0.2)
             }
+            .ignoresSafeArea(edges: .bottom)
         )
-        .cornerRadius(20)
+        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 20, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 20))
+        .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: -2)
+        .padding(.horizontal)
         .onTapGesture {
             withAnimation(.easeInOut(duration: 0.3)) {
                 isExpanded = true

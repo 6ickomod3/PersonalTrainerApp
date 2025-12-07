@@ -5,6 +5,49 @@ All notable changes to Personal Trainer App will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-12-07
+
+### Major Release - The Complete Dashboard ⭐️
+
+This release introduces a completely redesigned Home Screen with a unified dashboard, bringing together Calendar tracking, Cardio logging, and a modernized Strength training interface. It also transforms the Exercise Detail view into a comprehensive workout guide with warm-ups and cool-downs.
+
+### Added
+- **Unified Dashboard**
+  - **Dynamic Greetings**: Welcomes you with the date and a motivational message ("Let's crush it, Ji!").
+  - **Training Calendar**: Monthly view with color-coded dots (Red for Strength, Blue for Cardio) to track activity at a glance.
+  - **3-Section Layout**: seamlessly integrates Strength, Cardio, and Calendar in one scrollable view.
+
+- **Cardio Tracking**
+  - **New Log Type**: Track Run, Cycle, Walk, Swim, HIIT, and more.
+  - **Smart Filtering**: Dashboard only displays today's cardio logs to keep the view focused.
+  - **Quick Add**: dedicated "+" button for fast cardio entry.
+
+- **Comprehensive Muscle Guide**
+  - **3-Phase Workout Flow**: Muscle detail pages now include **Warm Up**, **Exercises**, and **Cool Down** sections.
+  - **Vertical List Layout**: Consistent, clean list design for all sections.
+  - **Guide Instructions**: Tap any warm-up or stretch to see detailed "How-to" instructions.
+  - **Smart Daily Reset**: Checkboxes for guide items persist for the day and auto-reset tomorrow.
+
+- **Settings & Data Safety**
+  - **Danger Zone**: "Reset All Data" moved to Settings to prevent accidents, protected by a confirmation alert.
+  - **Timer Defaults**: Rest timer now starts collapsed by default to maximize screen real estate.
+
+### Changed
+- **Home Screen Redesign**
+  - Replaced simple list with a modern Grid Layout for Muscle Groups.
+  - Removed "Add Muscle Group" button from main toolbar for a cleaner look.
+- **Visual Extensions**
+  - Timer view now functions as a full-width bottom sheet with improved safe area handling.
+  - Muscle Group cards feature primary text color for better readability in Light Mode.
+
+### Technical Details
+- Implemented `CardioLog` SwiftData model.
+- Created `GuideRow` and `GuideDetailView` components.
+- Added `UserDefaults` persistence logic for daily reset of Guide items.
+- Refactored `ContentView` into modular sub-views (`StrengthTrainingView`, `CardioSectionView`, `CalendarSectionView`).
+
+---
+
 ## [1.1.0] - 2025-11-30
 
 ### Major Update - Refinement & Polish 💎

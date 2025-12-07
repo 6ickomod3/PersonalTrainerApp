@@ -113,6 +113,25 @@ class WorkoutSet {
     }
 }
 
+@Model
+class CardioLog {
+    var id: UUID = UUID()
+    var type: String // "Run", "Cycle", "Walk", etc.
+    var duration: TimeInterval // milliseconds or seconds? Let's assume seconds.
+    var date: Date = Date()
+    var distance: Double? // meters or miles, purely optional metadata for now
+    var calories: Double?
+    
+    init(type: String, duration: TimeInterval, date: Date = Date(), distance: Double? = nil, calories: Double? = nil) {
+        self.id = UUID()
+        self.type = type
+        self.duration = duration
+        self.date = date
+        self.distance = distance
+        self.calories = calories
+    }
+}
+
 extension Exercise {
     static var sampleExercises: [Exercise] {
         [
