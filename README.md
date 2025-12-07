@@ -5,7 +5,7 @@ A comprehensive iOS fitness companion for tracking workouts, managing exercises,
 
 ## Features
 
-- 📋 **unified Dashboard** - All-in-one view with Strength, Cardio, and Calendar tracking
+- 📋 **Unified Dashboard** - All-in-one view with Strength, Cardio, and Calendar tracking
 - 💪 **comprehensive Guides** - Workouts now include Warm-up and Cool-down sections with detailed instructions
 - 🏃 **Cardio Logging** - Track runs, cycles, and more with daily filtering
 - 📅 **Activity Calendar** - Visual monthly history with color-coded workout dots
