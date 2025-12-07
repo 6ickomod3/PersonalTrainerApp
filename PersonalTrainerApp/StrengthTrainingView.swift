@@ -56,7 +56,7 @@ struct MuscleGroupCard: View {
                 HStack {
                     Text(group.name)
                         .font(.headline)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.red)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.caption)

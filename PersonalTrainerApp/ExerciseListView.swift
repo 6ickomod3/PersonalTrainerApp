@@ -72,7 +72,7 @@ struct ExerciseListView: View {
                             .padding(.vertical, 20)
                     } else {
                         // Custom List-like layout since we are inside a ScrollView
-                        LazyVStack(spacing: 0) {
+                        LazyVStack(spacing: 12) {
                             ForEach(exercises) { exercise in
                                 ExerciseRow(
                                     exercise: exercise,
@@ -87,13 +87,8 @@ struct ExerciseListView: View {
                                     }
                                 )
                                 .environment(timerState)
-                                
-                                Divider()
-                                    .padding(.leading)
                             }
                         }
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                         .padding(.horizontal)
                     }
                 }
@@ -198,7 +193,7 @@ struct GuideRow: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.name)
                         .font(.body.weight(.medium))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(color)
                     
                     Text(item.duration)
                         .font(.caption)
@@ -318,9 +313,12 @@ struct ExerciseRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                .padding()
             }
+            .buttonStyle(.plain)
         }
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
