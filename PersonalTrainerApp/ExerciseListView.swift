@@ -117,12 +117,18 @@ struct ExerciseListView: View {
                 Spacer()
                 // Edit/Manage Button for Warmups
                 NavigationLink(destination: ManageGuidesView(muscleGroup: muscleGroup, category: "warmup")) {
-                    Text("Manage")
+                    Text("Edit")
                         .font(.caption)
-                        .foregroundStyle(.blue)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color.orange.opacity(0.1))
+                        .clipShape(Capsule())
                 }
             }
             .padding(.horizontal)
+            .padding(.top, 16)
             
             VStack(spacing: 12) {
                 if warmups.isEmpty {
@@ -139,7 +145,15 @@ struct ExerciseListView: View {
                 }
             }
             .padding(.horizontal)
+            .padding(.bottom, 16)
         }
+        .background(Color.orange.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.orange.opacity(0.1), lineWidth: 1)
+        )
+        .padding(.horizontal)
     }
     
     @ViewBuilder
@@ -152,12 +166,18 @@ struct ExerciseListView: View {
                 Spacer()
                 // Edit/Manage Button for Cooldowns
                 NavigationLink(destination: ManageGuidesView(muscleGroup: muscleGroup, category: "stretch")) {
-                    Text("Manage")
+                    Text("Edit")
                         .font(.caption)
+                        .fontWeight(.medium)
                         .foregroundStyle(.blue)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color.blue.opacity(0.1))
+                        .clipShape(Capsule())
                 }
             }
             .padding(.horizontal)
+            .padding(.top, 16)
             
             VStack(spacing: 12) {
                 if stretches.isEmpty {
@@ -174,7 +194,15 @@ struct ExerciseListView: View {
                 }
             }
             .padding(.horizontal)
+            .padding(.bottom, 16)
         }
+        .background(Color.blue.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.blue.opacity(0.1), lineWidth: 1)
+        )
+        .padding(.horizontal)
     }
     
     @ViewBuilder
@@ -183,13 +211,15 @@ struct ExerciseListView: View {
             HStack {
                 Label("Exercises", systemImage: "dumbbell.fill")
                     .font(.headline)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.red)
                 
                 Spacer()
                 
                 if isEditingOrder {
                     Button(action: { showingAddExerciseSheet = true }) {
                         Image(systemName: "plus")
+                            .foregroundStyle(.red)
+                            .padding(.trailing, 8)
                     }
                 }
                 
@@ -198,9 +228,16 @@ struct ExerciseListView: View {
                         isEditingOrder.toggle()
                     }
                 }
-                .font(.subheadline)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundStyle(.red)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Color.red.opacity(0.1))
+                .clipShape(Capsule())
             }
             .padding(.horizontal)
+            .padding(.top, 16)
             .padding(.bottom, 8)
             
             if exercises.isEmpty {
@@ -231,6 +268,14 @@ struct ExerciseListView: View {
                 .padding(.horizontal)
             }
         }
+        .padding(.bottom, 16)
+        .background(Color.red.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.red.opacity(0.1), lineWidth: 1)
+        )
+        .padding(.horizontal)
     }
 }
 

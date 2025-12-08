@@ -21,6 +21,13 @@ This release unlocks the full potential of Workout Guides by making them complet
   - **Manage Mode**: Dedicated "Manage" view for guide sections to prevent accidental edits.
   - **Smart Seeding**: Automatically preserves your existing hardcoded guides while migrating them to the new dynamic system.
 
+### Visual Design Updates 🎨
+- **Workout Phase Coloring**: Distinct color themes for each workout phase to signify intensity:
+  - 🟧 **Warm-Up**: Energizing Orange tint.
+  - 🟥 **Exercises**: High-intensity Red tint.
+  - 🟦 **Cool-Down**: Calming Blue tint.
+- **Unified Interface**: Consistent "Edit" buttons and capsule styling across all sections for a premium look and feel.
+
 ### Technical Details
 - **SwiftData Architecture**: Introduced `GuideItem` and `MuscleGroupGuide` models for robust many-to-many relationships.
 - **Performance Optimization**: Refactored `ExerciseListView` using `@ViewBuilder` to significantly reduce compiler type-checking time.
