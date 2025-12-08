@@ -55,6 +55,7 @@ struct ContentView: View {
                         
                         // 1. Strength Section
                         StrengthTrainingView()
+                            .environment(timerState)
                         
                         // 2. Cardio Section
                         CardioSectionView()
@@ -109,6 +110,7 @@ struct ContentView: View {
             if exercises.isEmpty {
                 seedExercises()
             }
+            seedGuides()
         }
         .sheet(isPresented: $showingSettingsSheet) {
             SettingsSheet(isPresented: $showingSettingsSheet, settings: settings)
@@ -128,6 +130,60 @@ struct ContentView: View {
         for exercise in sampleExercises {
             modelContext.insert(exercise)
         }
+    }
+    
+    private func seedGuides() {
+        // Check if we already have guides (simple check)
+        let descriptor = FetchDescriptor<GuideItem>()
+        let existingCount = (try? modelContext.fetchCount(descriptor)) ?? 0
+        
+        if existingCount > 0 { return }
+        
+        print("Seeding Guides...")
+        
+        // Fetch existing muscle groups
+        let groupDescriptor = FetchDescriptor<MuscleGroup>()
+        guard let groups = try? modelContext.fetch(groupDescriptor) else { return }
+        
+        // Cache created items to reuse them (Global Pool concept)
+        var itemCache: [String: GuideItem] = [:]
+        
+        for group in groups {
+            // Warmups
+            let staticWarmups = MuscleGroupContent.warmups(for: group.name)
+            for (index, staticItem) in staticWarmups.enumerated() {
+                let guideItem = getOrCreateGuideItem(from: staticItem, type: "warmup", cache: &itemCache)
+                let relation = MuscleGroupGuide(displayOrder: index, category: "warmup", guideItem: guideItem)
+                group.guides.append(relation)
+            }
+            
+            // Stretches (Cooldowns)
+            let staticStretches = MuscleGroupContent.stretches(for: group.name)
+            for (index, staticItem) in staticStretches.enumerated() {
+                let guideItem = getOrCreateGuideItem(from: staticItem, type: "cooldown", cache: &itemCache)
+                let relation = MuscleGroupGuide(displayOrder: index, category: "stretch", guideItem: guideItem)
+                group.guides.append(relation)
+            }
+        }
+        
+        try? modelContext.save()
+    }
+    
+    private func getOrCreateGuideItem(from staticItem: StaticGuideItem, type: String, cache: inout [String: GuideItem]) -> GuideItem {
+        if let existing = cache[staticItem.name] {
+            return existing
+        }
+        
+        let newItem = GuideItem(
+            name: staticItem.name,
+            type: type,
+            duration: staticItem.duration,
+            instruction: staticItem.instruction,
+            icon: staticItem.icon
+        )
+        modelContext.insert(newItem)
+        cache[staticItem.name] = newItem
+        return newItem
     }
 
 }

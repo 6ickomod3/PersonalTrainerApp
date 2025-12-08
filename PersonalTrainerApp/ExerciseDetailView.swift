@@ -61,6 +61,20 @@ struct ExerciseDetailView: View {
                                         }
                                         Spacer()
                                     }
+                                    
+                                    Divider()
+                                    
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("Volume Today")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                            Text(String(format: "%.0f", vm.todaysVolume) + " lbs")
+                                                .font(.headline)
+                                                .foregroundStyle(.primary)
+                                        }
+                                        Spacer()
+                                    }
                                 }
                                 .padding(.vertical, 8)
                             }
@@ -102,7 +116,7 @@ struct ExerciseDetailView: View {
                                         .font(.headline)
                                     Picker("Weight", selection: Bindable(vm).weight) {
                                         ForEach(Array(stride(from: exercise.weightMin, through: exercise.weightMax, by: exercise.weightStep)), id: \.self) { w in
-                                            Text(String(format: "%.0f", w)).tag(w)
+                                            Text(String(format: "%.1f", w)).tag(w)
                                         }
                                     }
                                     .pickerStyle(.wheel)
@@ -171,6 +185,12 @@ struct ExerciseDetailView: View {
                                                     .buttonStyle(.borderless)
                                                 }
                                                 .padding(.vertical, 6)
+                                                .contentShape(Rectangle()) // Make entire row tappable
+                                                .onTapGesture {
+                                                    withAnimation {
+                                                        vm.prefillFromSet(set)
+                                                    }
+                                                }
                                                 
                                                 if set.id != dayData.sets.last?.id {
                                                     Divider()

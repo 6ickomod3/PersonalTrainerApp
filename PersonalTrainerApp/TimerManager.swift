@@ -65,11 +65,13 @@ class TimerManager {
         secondsRemaining += seconds
         
         // Update the user-set duration to remember this adjustment
-        userSetDuration = secondsRemaining
+        userSetDuration += seconds
         
         // Prevent negative time
         if secondsRemaining < 0 {
             secondsRemaining = 0
+        }
+        if userSetDuration < 0 {
             userSetDuration = 0
         }
         
@@ -89,7 +91,7 @@ class TimerManager {
         let remaining = endTime.timeIntervalSinceNow
         
         if remaining <= 0 {
-            secondsRemaining = 0
+            secondsRemaining = userSetDuration // Auto-reset to starting time
             pause()
             triggerAlarm()
         } else {

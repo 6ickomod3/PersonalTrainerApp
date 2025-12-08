@@ -8,6 +8,8 @@ class MuscleGroup {
     var createdDate: Date
     var displayOrder: Int = 0
     
+    @Relationship(deleteRule: .cascade, inverse: \MuscleGroupGuide.muscleGroup) var guides: [MuscleGroupGuide] = []
+    
     init(name: String) {
         self.id = UUID()
         self.name = name
@@ -23,6 +25,42 @@ class MuscleGroup {
             MuscleGroup(name: "Shoulder"),
             MuscleGroup(name: "Arm")
         ]
+    }
+}
+
+@Model
+class GuideItem {
+    var id: UUID
+    var name: String
+    var type: String // "warmup" or "cooldown" (or "stretch")
+    var duration: String
+    var instruction: String
+    var icon: String
+    var isCustom: Bool
+    
+    init(name: String, type: String, duration: String, instruction: String, icon: String, isCustom: Bool = false) {
+        self.id = UUID()
+        self.name = name
+        self.type = type
+        self.duration = duration
+        self.instruction = instruction
+        self.icon = icon
+        self.isCustom = isCustom
+    }
+}
+
+@Model
+class MuscleGroupGuide {
+    var displayOrder: Int
+    var category: String // "warmup" or "stretch" - helps filtering
+    
+    var guideItem: GuideItem?
+    var muscleGroup: MuscleGroup?
+    
+    init(displayOrder: Int, category: String, guideItem: GuideItem) {
+        self.displayOrder = displayOrder
+        self.category = category
+        self.guideItem = guideItem
     }
 }
 

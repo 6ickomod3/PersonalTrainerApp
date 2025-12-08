@@ -4,6 +4,22 @@ import SwiftData
 struct StrengthTrainingView: View {
     @Query(sort: \MuscleGroup.displayOrder) private var muscleGroups: [MuscleGroup]
     
+    @Query private var allExercises: [Exercise]
+    @Environment(TimerState.self) var timerState
+    
+    // Computed property to find the last logged exercise
+    var lastLoggedExercise: Exercise? {
+        // Filter exercises that have sets
+        let activeExercises = allExercises.filter { !$0.sets.isEmpty }
+        
+        // Find the one with the most recent set date
+        return activeExercises.sorted { ex1, ex2 in
+            let date1 = ex1.sets.max(by: { $0.date < $1.date })?.date ?? Date.distantPast
+            let date2 = ex2.sets.max(by: { $0.date < $1.date })?.date ?? Date.distantPast
+            return date1 > date2
+        }.first
+    }
+    
     // Grid layout
     let columns = [
         GridItem(.flexible()),
@@ -23,7 +39,42 @@ struct StrengthTrainingView: View {
                 // Could add a "Manage" button here later for reordering
             }
             .padding(.horizontal)
-
+            
+            // "Jump Back In" Shortcut
+            if let lastExercise = lastLoggedExercise {
+                NavigationLink(destination: ExerciseDetailView(exercise: lastExercise).environment(timerState)) {
+                    HStack {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.title2)
+                            .foregroundStyle(.white)
+                            .padding(10)
+                            .background(Circle().fill(.orange.gradient))
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Jump Back In")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+                            
+                            Text(lastExercise.name)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding()
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+                }
+                .buttonStyle(.plain)
+            }
+ 
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(muscleGroups) { group in
                     NavigationLink(value: group) {

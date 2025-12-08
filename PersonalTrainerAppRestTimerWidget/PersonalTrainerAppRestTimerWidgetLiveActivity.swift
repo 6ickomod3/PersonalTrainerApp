@@ -21,10 +21,17 @@ struct PersonalTrainerAppRestTimerWidgetLiveActivity: Widget {
                         .font(.headline)
                     Spacer()
                     // Countdown timer
-                    Text(timerInterval: Date()...context.state.endTime, countsDown: true)
-                        .monospacedDigit()
-                        .font(.title2)
-                        .foregroundStyle(.blue)
+                    if context.state.endTime > Date() {
+                        Text(timerInterval: Date()...context.state.endTime, countsDown: true)
+                            .monospacedDigit()
+                            .font(.title2)
+                            .foregroundStyle(.blue)
+                    } else {
+                        Text("0:00")
+                            .monospacedDigit()
+                            .font(.title2)
+                            .foregroundStyle(.blue)
+                    }
                 }
                 .padding()
             }
@@ -40,10 +47,17 @@ struct PersonalTrainerAppRestTimerWidgetLiveActivity: Widget {
                         .padding(.leading)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text(timerInterval: Date()...context.state.endTime, countsDown: true)
-                        .monospacedDigit()
-                        .foregroundStyle(.blue)
-                        .padding(.trailing)
+                    if context.state.endTime > Date() {
+                        Text(timerInterval: Date()...context.state.endTime, countsDown: true)
+                            .monospacedDigit()
+                            .foregroundStyle(.blue)
+                            .padding(.trailing)
+                    } else {
+                        Text("0:00")
+                            .monospacedDigit()
+                            .foregroundStyle(.blue)
+                            .padding(.trailing)
+                    }
                 }
                 DynamicIslandExpandedRegion(.center) {
                     Text("Resting")
@@ -56,10 +70,17 @@ struct PersonalTrainerAppRestTimerWidgetLiveActivity: Widget {
                 Image(systemName: "timer")
                     .foregroundStyle(.blue)
             } compactTrailing: {
-                Text(timerInterval: Date()...context.state.endTime, countsDown: true)
-                    .monospacedDigit()
-                    .frame(width: 40)
-                    .foregroundStyle(.blue)
+                if context.state.endTime > Date() {
+                    Text(timerInterval: Date()...context.state.endTime, countsDown: true)
+                        .monospacedDigit()
+                        .frame(width: 40)
+                        .foregroundStyle(.blue)
+                } else {
+                    Text("0:00")
+                        .monospacedDigit()
+                        .frame(width: 40)
+                        .foregroundStyle(.blue)
+                }
             } minimal: {
                 Image(systemName: "timer")
                     .foregroundStyle(.blue)

@@ -21,92 +21,27 @@ struct ExerciseListView: View {
             .sorted { $0.displayOrder < $1.displayOrder }
     }
     
+// Helper computed properties for Dynamic Guides
+    var warmups: [MuscleGroupGuide] {
+        muscleGroup.guides
+            .filter { $0.category == "warmup" }
+            .sorted { $0.displayOrder < $1.displayOrder }
+    }
+    
+    var stretches: [MuscleGroupGuide] {
+        muscleGroup.guides
+            .filter { $0.category == "stretch" } // Note: "stretch" used in seeding for cooldowns
+            .sorted { $0.displayOrder < $1.displayOrder }
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                // MARK: - Warm Up Section
-                VStack(alignment: .leading, spacing: 12) {
-                    Label("Warm Up", systemImage: "flame.fill")
-                        .font(.headline)
-                        .foregroundStyle(.orange)
-                        .padding(.horizontal)
-                    
-                    VStack(spacing: 12) {
-                        ForEach(MuscleGroupContent.warmups(for: muscleGroup.name)) { item in
-                            GuideRow(item: item, color: .orange, muscleGroup: muscleGroup.name, section: "warmup")
-                        }
-                    }
-                    .padding(.horizontal)
-                }
+                warmupSection
                 
-                // MARK: - Main Exercises Section
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack {
-                        Label("Exercises", systemImage: "dumbbell.fill")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        
-                        Spacer()
-                        
-                        if isEditingOrder {
-                            Button(action: { showingAddExerciseSheet = true }) {
-                                Image(systemName: "plus")
-                            }
-                        }
-                        
-                        Button(isEditingOrder ? "Done" : "Edit") {
-                            withAnimation {
-                                isEditingOrder.toggle()
-                            }
-                        }
-                        .font(.subheadline)
-                    }
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
-                    
-                    if exercises.isEmpty {
-                        Text("No exercises added yet.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.vertical, 20)
-                    } else {
-                        // Custom List-like layout since we are inside a ScrollView
-                        LazyVStack(spacing: 12) {
-                            ForEach(exercises) { exercise in
-                                ExerciseRow(
-                                    exercise: exercise,
-                                    isEditing: isEditingOrder,
-                                    onRename: {
-                                        exerciseToRename = exercise
-                                        newName = exercise.name
-                                    },
-                                    onDelete: {
-                                        modelContext.delete(exercise)
-                                        try? modelContext.save()
-                                    }
-                                )
-                                .environment(timerState)
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                }
+                mainExercisesSection
                 
-                // MARK: - Cool Down Section
-                VStack(alignment: .leading, spacing: 12) {
-                    Label("Cool Down", systemImage: "snowflake")
-                        .font(.headline)
-                        .foregroundStyle(.blue)
-                        .padding(.horizontal)
-                    
-                    VStack(spacing: 12) {
-                        ForEach(MuscleGroupContent.stretches(for: muscleGroup.name)) { item in
-                            GuideRow(item: item, color: .blue, muscleGroup: muscleGroup.name, section: "stretch")
-                        }
-                    }
-                    .padding(.horizontal)
-                }
+                cooldownSection
                 
                 // Spacer for Timer
                 Color.clear.frame(height: 100)
@@ -156,6 +91,7 @@ struct ExerciseListView: View {
         try? modelContext.save()
         
         newlyCreatedExercise = newExercise
+        isEditingOrder = false // Exit edit mode
         isNavigatingToNew = true
     }
     
@@ -168,6 +104,133 @@ struct ExerciseListView: View {
             exercise.displayOrder = index
         }
         try? modelContext.save()
+    }
+    
+    // Sub-views to reduce body complexity
+    @ViewBuilder
+    var warmupSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Warm Up", systemImage: "flame.fill")
+                    .font(.headline)
+                    .foregroundStyle(.orange)
+                Spacer()
+                // Edit/Manage Button for Warmups
+                NavigationLink(destination: ManageGuidesView(muscleGroup: muscleGroup, category: "warmup")) {
+                    Text("Manage")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                }
+            }
+            .padding(.horizontal)
+            
+            VStack(spacing: 12) {
+                if warmups.isEmpty {
+                    Text("No warm-ups added.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding()
+                } else {
+                    ForEach(warmups) { guide in
+                        if let item = guide.guideItem {
+                            GuideRow(item: item, color: .orange, muscleGroup: muscleGroup.name, section: "warmup")
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+    
+    @ViewBuilder
+    var cooldownSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Cool Down", systemImage: "snowflake")
+                    .font(.headline)
+                    .foregroundStyle(.blue)
+                Spacer()
+                // Edit/Manage Button for Cooldowns
+                NavigationLink(destination: ManageGuidesView(muscleGroup: muscleGroup, category: "stretch")) {
+                    Text("Manage")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                }
+            }
+            .padding(.horizontal)
+            
+            VStack(spacing: 12) {
+                if stretches.isEmpty {
+                    Text("No cool-downs added.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding()
+                } else {
+                    ForEach(stretches) { guide in
+                        if let item = guide.guideItem {
+                            GuideRow(item: item, color: .blue, muscleGroup: muscleGroup.name, section: "stretch")
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+    
+    @ViewBuilder
+    var mainExercisesSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Label("Exercises", systemImage: "dumbbell.fill")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                
+                Spacer()
+                
+                if isEditingOrder {
+                    Button(action: { showingAddExerciseSheet = true }) {
+                        Image(systemName: "plus")
+                    }
+                }
+                
+                Button(isEditingOrder ? "Done" : "Edit") {
+                    withAnimation {
+                        isEditingOrder.toggle()
+                    }
+                }
+                .font(.subheadline)
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 8)
+            
+            if exercises.isEmpty {
+                Text("No exercises added yet.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 20)
+            } else {
+                // Custom List-like layout since we are inside a ScrollView
+                LazyVStack(spacing: 12) {
+                    ForEach(exercises) { exercise in
+                        ExerciseRow(
+                            exercise: exercise,
+                            isEditing: isEditingOrder,
+                            onRename: {
+                                exerciseToRename = exercise
+                                newName = exercise.name
+                            },
+                            onDelete: {
+                                modelContext.delete(exercise)
+                                try? modelContext.save()
+                            }
+                        )
+                        .environment(timerState)
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
     }
 }
 
@@ -187,31 +250,37 @@ struct GuideRow: View {
     }
     
     var body: some View {
-        HStack(spacing: 12) {
+
+        HStack(spacing: 0) {
             // Main Content - Navigates to Detail
             NavigationLink(destination: GuideDetailView(item: item, color: color).environment(timerState)) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(item.name)
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(color)
-                    
-                    Text(item.duration)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.name)
+                            .font(.body.weight(.medium))
+                            .foregroundStyle(color)
+                        
+                        Text(item.duration)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
                 }
+                .contentShape(Rectangle())
+                .padding()
             }
-            
-            Spacer()
+            .buttonStyle(.plain)
             
             // Toggle Button
             Button(action: toggleState) {
                 Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
                     .font(.title2)
                     .foregroundStyle(isChecked ? .green : .gray.opacity(0.3))
+                    .padding(.trailing)
+                    .padding(.vertical)
             }
             .buttonStyle(.plain)
         }
-        .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .onAppear(perform: loadState)
@@ -290,17 +359,23 @@ struct ExerciseRow: View {
     @Environment(TimerState.self) var timerState
     
     var body: some View {
-        HStack {
+
+        HStack(spacing: 0) {
             if isEditing {
-                Button(action: onDelete) {
-                    Image(systemName: "minus.circle.fill")
-                        .foregroundStyle(.red)
-                }
-                .padding(.leading, 8)
-                
-                Button(action: onRename) {
-                    Image(systemName: "pencil.circle.fill")
-                        .foregroundStyle(.orange)
+                HStack(spacing: 0) {
+                    Button(action: onDelete) {
+                        Image(systemName: "minus.circle.fill")
+                            .foregroundStyle(.red)
+                    }
+                    .padding(.leading)
+                    .padding(.vertical)
+                    
+                    Button(action: onRename) {
+                        Image(systemName: "pencil.circle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                    .padding(.leading, 8)
+                    .padding(.vertical)
                 }
             }
             
@@ -313,10 +388,11 @@ struct ExerciseRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                .contentShape(Rectangle())
+                .padding()
             }
             .buttonStyle(.plain)
         }
-        .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
@@ -328,3 +404,204 @@ struct ExerciseRow: View {
     }
 }
 
+import SwiftUI
+import SwiftData
+
+struct ManageGuidesView: View {
+    @Environment(\.modelContext) private var modelContext
+    let muscleGroup: MuscleGroup
+    let category: String // "warmup" or "stretch"
+    
+    @State private var showingPoolSheet = false
+    
+    // Fetch guides belonging to this muscle group and category, sorted by order
+    // Since we can't easy dynamic predicate on @Query, we'll sort in memory or rely on the relationship array
+    // The relationship array `muscleGroup.guides` IS the source of truth.
+    
+    // We want a list we can move/delete.
+    // Accessing `muscleGroup.guides` directly.
+    
+    var currentGuides: [MuscleGroupGuide] {
+        muscleGroup.guides
+            .filter { $0.category == category }
+            .sorted { $0.displayOrder < $1.displayOrder }
+    }
+    
+    var body: some View {
+        List {
+            ForEach(currentGuides) { relation in
+                if let item = relation.guideItem {
+                    HStack {
+                        Image(systemName: item.icon)
+                            .foregroundStyle(category == "warmup" ? .orange : .blue)
+                            .frame(width: 30)
+                        Text(item.name)
+                        Spacer()
+                        Text(item.duration)
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                }
+            }
+            .onMove(perform: moveGuides)
+            .onDelete(perform: deleteGuides)
+        }
+        .navigationTitle("Manage \(category == "warmup" ? "Warm Ups" : "Cool Downs")")
+        .environment(\.editMode, .constant(.active)) // Always in edit mode for ease
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: { showingPoolSheet = true }) {
+                    Image(systemName: "plus")
+                }
+            }
+        }
+        .sheet(isPresented: $showingPoolSheet) {
+            GuidePoolSheet(muscleGroup: muscleGroup, category: category, isPresented: $showingPoolSheet)
+        }
+    }
+    
+    private func moveGuides(from source: IndexSet, to destination: Int) {
+        var guides = currentGuides
+        guides.move(fromOffsets: source, toOffset: destination)
+        
+        // Update display orders
+        for (index, guide) in guides.enumerated() {
+            guide.displayOrder = index
+        }
+        
+        try? modelContext.save()
+    }
+    
+    private func deleteGuides(at offsets: IndexSet) {
+        let guidesToDelete = offsets.map { currentGuides[$0] }
+        for guide in guidesToDelete {
+            // Remove from relationship
+            if let index = muscleGroup.guides.firstIndex(where: { $0.id == guide.id }) {
+                muscleGroup.guides.remove(at: index)
+            }
+            // Delete the join entity
+            modelContext.delete(guide)
+        }
+        try? modelContext.save()
+    }
+}
+
+struct GuidePoolSheet: View {
+    @Environment(\.modelContext) private var modelContext
+    let muscleGroup: MuscleGroup
+    let category: String
+    @Binding var isPresented: Bool
+    
+    // We want all guides that are correct type ("warmup" or "cooldown")
+    // Note: "stretch" category in MuscleGroupGuide maps to "cooldown" type in GuideItem usually.
+    // See seeding logic: type: "cooldown", category: "stretch".
+    
+    var descriptorType: String {
+        category == "warmup" ? "warmup" : "cooldown"
+    }
+    
+    @Query(sort: \GuideItem.name) var allGuides: [GuideItem]
+    
+    // Filtered list
+    var availableGuides: [GuideItem] {
+        allGuides.filter { $0.type == descriptorType }
+    }
+    
+    @State private var showingCreateForm = false
+    @State private var newItemName = ""
+    @State private var newItemDuration = ""
+    @State private var newItemInstruction = ""
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                Section(header: Text("Create New")) {
+                    DisclosureGroup("Create Custom \(descriptorType == "warmup" ? "Warm Up" : "Cool Down")", isExpanded: $showingCreateForm) {
+                        VStack(spacing: 12) {
+                            TextField("Name", text: $newItemName)
+                            TextField("Duration (e.g. 30s)", text: $newItemDuration)
+                            TextField("Instruction", text: $newItemInstruction, axis: .vertical)
+                            
+                            Button("Add & Select") {
+                                createAndAdd()
+                            }
+                            .disabled(newItemName.isEmpty)
+                            .buttonStyle(.borderedProminent)
+                            .frame(maxWidth: .infinity)
+                        }
+                        .padding(.vertical, 8)
+                    }
+                }
+                
+                Section(header: Text("Select from Pool")) {
+                    ForEach(availableGuides) { item in
+                        Button(action: {
+                            addToMuscleGroup(item)
+                        }) {
+                            HStack {
+                                Image(systemName: item.icon)
+                                    .foregroundStyle(.secondary)
+                                VStack(alignment: .leading) {
+                                    Text(item.name)
+                                        .foregroundStyle(.primary)
+                                    Text(item.instruction)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                                Spacer()
+                                // Show checkmark if already added?
+                                if isAlreadyAdded(item) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.green)
+                                } else {
+                                    Image(systemName: "plus.circle")
+                                        .foregroundStyle(.blue)
+                                }
+                            }
+                        }
+                        .disabled(isAlreadyAdded(item))
+                    }
+                }
+            }
+            .navigationTitle("Add to \(muscleGroup.name)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Done") { isPresented = false }
+                }
+            }
+        }
+    }
+    
+    private func isAlreadyAdded(_ item: GuideItem) -> Bool {
+        muscleGroup.guides.contains { $0.guideItem?.id == item.id && $0.category == category }
+    }
+    
+    private func addToMuscleGroup(_ item: GuideItem) {
+        // Find max order
+        let currentMax = muscleGroup.guides
+            .filter { $0.category == category }
+            .map { $0.displayOrder }
+            .max() ?? -1
+        
+        let newRelation = MuscleGroupGuide(displayOrder: currentMax + 1, category: category, guideItem: item)
+        muscleGroup.guides.append(newRelation)
+        // modelContext.insert(newRelation) // relationship append implies insert, but usually safer to insert
+        try? modelContext.save()
+        isPresented = false
+    }
+    
+    private func createAndAdd() {
+        let newItem = GuideItem(
+            name: newItemName,
+            type: descriptorType,
+            duration: newItemDuration.isEmpty ? "1 min" : newItemDuration,
+            instruction: newItemInstruction.isEmpty ? "Follow instructions." : newItemInstruction,
+            icon: descriptorType == "warmup" ? "flame" : "snowflake",
+            isCustom: true
+        )
+        modelContext.insert(newItem)
+        addToMuscleGroup(newItem)
+    }
+}

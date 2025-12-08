@@ -14,8 +14,30 @@ class ExerciseDetailViewModel {
     init(exercise: Exercise, modelContext: ModelContext) {
         self.exercise = exercise
         self.modelContext = modelContext
+        
+        // Default initialization
         self.reps = exercise.defaultReps
         self.weight = exercise.defaultWeight
+        
+        // Smart Pre-fill: Try to find the most recent set
+        if let lastSet = exercise.sets.sorted(by: { $0.date > $1.date }).first {
+            prefillFromSet(lastSet)
+        }
+    }
+    
+    func prefillFromSet(_ set: WorkoutSet) {
+        // 1. Match Reps (Clamp to 0-50 range supported by picker)
+        self.reps = min(max(set.reps, 0), 50)
+        
+        // 2. Match Weight (Find nearest valid step)
+        let validWeights = Array(stride(from: exercise.weightMin, through: exercise.weightMax, by: exercise.weightStep))
+        
+        if let nearest = validWeights.min(by: { abs($0 - set.weight) < abs($1 - set.weight) }) {
+            self.weight = nearest
+        } else {
+            // Fallback if stride fails (shouldn't happen)
+            self.weight = set.weight
+        }
     }
     
     // MARK: - Computed Properties
@@ -39,6 +61,15 @@ class ExerciseDetailViewModel {
         let previousDays = setsByDate.filter { $0.date < today }
         guard let mostRecentPreviousDay = previousDays.first else { return nil }
         return mostRecentPreviousDay.totalVolume
+    }
+    
+    // Get total volume for today
+    var todaysVolume: Double {
+        let today = Calendar.current.startOfDay(for: Date())
+        if let todayData = setsByDate.first(where: { $0.date == today }) {
+            return todayData.totalVolume
+        }
+        return 0
     }
     
     // Calculate suggested volume using exercise's custom improvement percentage

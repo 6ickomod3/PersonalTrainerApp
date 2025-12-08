@@ -97,6 +97,8 @@ struct TimerView: View {
                                 .font(.body)
                                 .foregroundStyle(.primary)
                         }
+                        .disabled(timerManager.isRunning)
+                        .opacity(timerManager.isRunning ? 0.3 : 1.0)
                         
                         // +15s Button
                         Button(action: { timerManager.addTime(15) }) {
@@ -104,6 +106,8 @@ struct TimerView: View {
                                 .font(.body)
                                 .foregroundStyle(.primary)
                         }
+                        .disabled(timerManager.isRunning)
+                        .opacity(timerManager.isRunning ? 0.3 : 1.0)
                         
                         Spacer()
                         

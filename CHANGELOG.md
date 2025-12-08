@@ -5,7 +5,29 @@ All notable changes to Personal Trainer App will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] - 2025-12-07
+## [1.3.0] - 2025-12-07
+
+### Major Release - Customizable Workout Guides 🛠️
+
+This release unlocks the full potential of Workout Guides by making them completely dynamic. You can now reorder, add, remove, and create custom warm-ups and cool-downs for every muscle group, giving you total control over your workout flow.
+
+### Added
+- **Dynamic Guide Management**
+  - **Reorder & Organizing**: Drag-and-drop support for Warm-up and Cool-down items.
+  - **Global Pools**: Select from a master list of guide items to add to any muscle group.
+  - **Custom Items**: improved creation flow for custom warm-ups or stretches with personalized instructions and duration.
+
+- **Enhanced Editing Experience**
+  - **Manage Mode**: Dedicated "Manage" view for guide sections to prevent accidental edits.
+  - **Smart Seeding**: Automatically preserves your existing hardcoded guides while migrating them to the new dynamic system.
+
+### Technical Details
+- **SwiftData Architecture**: Introduced `GuideItem` and `MuscleGroupGuide` models for robust many-to-many relationships.
+- **Performance Optimization**: Refactored `ExerciseListView` using `@ViewBuilder` to significantly reduce compiler type-checking time.
+- **Seeding Logic**: Intelligent data migration strategy to populate initial databases without duplication.
+
+---
+
 
 ### Major Release - The Complete Dashboard ⭐️
 
