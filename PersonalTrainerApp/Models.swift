@@ -83,9 +83,15 @@ class Exercise {
     // Volume improvement percentage for suggested volume calculation
     var volumeImprovementPercent: Double = 3.0
     
+    // Video URL for instructions
+    var videoUrl: String?
+    
+    // List of instruction pointers
+    var instructions: [String] = []
+    
     @Relationship(deleteRule: .cascade, inverse: \WorkoutSet.exercise) var sets: [WorkoutSet] = []
     
-    init(name: String, muscleGroupName: String, defaultReps: Int = 10, defaultWeight: Double = 20.0) {
+    init(name: String, muscleGroupName: String, defaultReps: Int = 10, defaultWeight: Double = 20.0, videoUrl: String? = nil, instructions: [String] = []) {
         self.id = UUID()
         self.name = name
         self.muscleGroupName = muscleGroupName
@@ -98,6 +104,8 @@ class Exercise {
         self.weightMax = 200.0
         self.weightStep = 5.0
         self.volumeImprovementPercent = 3.0
+        self.videoUrl = videoUrl
+        self.instructions = instructions
     }
     
     /// Cleanup old sets, keeping only the specified number of most recent dates
@@ -127,6 +135,42 @@ class Exercise {
         if !setsToDelete.isEmpty {
             try? modelContext.save()
         }
+    }
+    /// Helper to get the most recent set date for sorting
+    var lastLogDate: Date? {
+        sets.max(by: { $0.date < $1.date })?.date
+    }
+    
+    // MARK: - Volume Helpers
+    
+    var todaysVolume: Double {
+        let today = Calendar.current.startOfDay(for: Date())
+        let todaySets = sets.filter { Calendar.current.startOfDay(for: $0.date) == today }
+        return todaySets.reduce(0) { $0 + $1.volume }
+    }
+    
+    var lastTrainingVolume: Double? {
+        let today = Calendar.current.startOfDay(for: Date())
+        
+        // Group by day distinctive from today
+        let pastSets = sets.filter { Calendar.current.startOfDay(for: $0.date) < today }
+        
+        guard !pastSets.isEmpty else { return nil }
+        
+        // Find most recent past date
+        let mostRecentDate = pastSets.map { Calendar.current.startOfDay(for: $0.date) }.max()
+        
+        guard let targetDate = mostRecentDate else { return nil }
+        
+        // Sum volume for that day
+        let targetSets = pastSets.filter { Calendar.current.startOfDay(for: $0.date) == targetDate }
+        return targetSets.reduce(0) { $0 + $1.volume }
+    }
+    
+    var suggestedVolume: Double? {
+        guard let last = lastTrainingVolume else { return nil }
+        let improvementFactor = 1.0 + (volumeImprovementPercent / 100.0)
+        return last * improvementFactor
     }
 }
 

@@ -22,7 +22,7 @@ struct AddMuscleGroupSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Add") {
                         if !groupName.trimmingCharacters(in: .whitespaces).isEmpty {
-                            onAdd(groupName)
+                            onAdd(groupName.capitalized)
                             isPresented = false
                         }
                     }

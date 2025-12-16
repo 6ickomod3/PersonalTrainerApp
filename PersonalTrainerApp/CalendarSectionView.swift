@@ -6,6 +6,7 @@ struct CalendarSectionView: View {
     @Query private var cardioLogs: [CardioLog]
     
     @State private var currentMonth = Date()
+    @State private var selectedDate: Date?
     
     // Compute days with workouts
     var daysWithWorkouts: [Date: Set<String>] {
@@ -27,7 +28,7 @@ struct CalendarSectionView: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Label("Activity", systemImage: "calendar")
                     .font(.title3.bold())
@@ -35,17 +36,31 @@ struct CalendarSectionView: View {
             }
             .padding(.horizontal)
 
-            CalendarGrid(currentMonth: $currentMonth, activityMap: daysWithWorkouts)
-                .padding()
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .padding(.horizontal)
+            VStack(spacing: 0) {
+                CalendarGrid(currentMonth: $currentMonth, selectedDate: $selectedDate, activityMap: daysWithWorkouts)
+                    .padding()
+                
+                if let date = selectedDate {
+                    Divider()
+                        .padding(.horizontal)
+                    
+                    DailyLogView(date: date, sets: sets, cardioLogs: cardioLogs)
+                        // Simple appear without "falling" animation
+                        .transition(.opacity)
+                }
+            }
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal)
         }
+        // Keep the layout animation for smooth resizing, but it won't be "falling"
+        .animation(.spring(response: 0.3, dampingFraction: 1), value: selectedDate)
     }
 }
 
 struct CalendarGrid: View {
     @Binding var currentMonth: Date
+    @Binding var selectedDate: Date?
     let activityMap: [Date: Set<String>]
     
     let daysOfWeek = ["S", "M", "T", "W", "T", "F", "S"]
@@ -84,13 +99,25 @@ struct CalendarGrid: View {
             LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(daysInMonth(), id: \.self) { date in
                     if let date = date {
-                        DayCell(date: date, activities: activityMap[date])
+                        DayCell(date: date, activities: activityMap[date], isSelected: isSelected(date))
+                            .onTapGesture {
+                                if isSelected(date) {
+                                    selectedDate = nil
+                                } else {
+                                    selectedDate = date
+                                }
+                            }
                     } else {
                         Text("")
                     }
                 }
             }
         }
+    }
+    
+    func isSelected(_ date: Date) -> Bool {
+        guard let selected = selectedDate else { return false }
+        return Calendar.current.isDate(date, inSameDayAs: selected)
     }
     
     func changeMonth(by value: Int) {
@@ -126,6 +153,7 @@ struct CalendarGrid: View {
 struct DayCell: View {
     let date: Date
     let activities: Set<String>?
+    let isSelected: Bool
     
     var isToday: Bool {
         Calendar.current.isDateInToday(date)
@@ -135,12 +163,20 @@ struct DayCell: View {
         VStack {
             Text("\(Calendar.current.component(.day, from: date))")
                 .font(.caption)
-                .foregroundStyle(isToday ? .white : .primary)
+                .foregroundStyle(isToday ? .white : (isSelected ? .white : .primary))
                 .frame(width: 30, height: 30)
-                .background(isToday ? Circle().fill(Color.blue) : nil)
+                .background(
+                    Group {
+                        if isToday {
+                            Circle().fill(Color.blue)
+                        } else if isSelected {
+                            Circle().fill(Color.primary.opacity(0.8))
+                        }
+                    }
+                )
                 .overlay(
                     HStack(spacing: 2) {
-                        if let acts = activities {
+                        if !isSelected, let acts = activities {
                             if acts.contains("strength") {
                                 Circle().fill(Color.red).frame(width: 4, height: 4)
                             }
@@ -152,5 +188,118 @@ struct DayCell: View {
                     .offset(y: 12)
                 )
         }
+    }
+}
+
+struct DailyLogView: View {
+    let date: Date
+    let sets: [WorkoutSet]
+    let cardioLogs: [CardioLog]
+    
+    var filteredSets: [WorkoutSet] {
+        sets.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
+            .sorted { $0.date < $1.date }
+    }
+    
+    var filteredCardio: [CardioLog] {
+        cardioLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
+            .sorted { $0.date < $1.date }
+    }
+    
+    var setsByExercise: [String: [WorkoutSet]] {
+        Dictionary(grouping: filteredSets) { $0.exercise?.name ?? "Unknown" }
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text(date.formatted(date: .complete, time: .omitted))
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            
+            if filteredSets.isEmpty && filteredCardio.isEmpty {
+                Text("No workouts recorded.")
+                    .foregroundStyle(.secondary)
+                    .italic()
+                    .padding(.vertical)
+            } else {
+                if !filteredSets.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("Strength", systemImage: "dumbbell.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.red)
+                        
+                        ForEach(setsByExercise.keys.sorted(), id: \.self) { exerciseName in
+                            if let exerciseSets = setsByExercise[exerciseName] {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(exerciseName)
+                                        .font(.system(.body, design: .rounded).weight(.medium))
+                                    
+                                    Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 4) {
+                                        ForEach(exerciseSets) { set in
+                                            GridRow {
+                                                Text("\(set.reps) reps")
+                                                    .gridColumnAlignment(.trailing)
+                                                Text("×")
+                                                    .foregroundStyle(.secondary)
+                                                    .gridColumnAlignment(.center)
+                                                Text("\(set.weight.formatted()) lbs")
+                                                    .gridColumnAlignment(.leading)
+                                            }
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(8)
+                                .background(Color.secondary.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                        }
+                    }
+                }
+                
+                if !filteredCardio.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("Cardio", systemImage: "figure.run")
+                            .font(.subheadline)
+                            .foregroundStyle(.cyan)
+                        
+                        ForEach(filteredCardio) { log in
+                            HStack {
+                                Text(log.type)
+                                    .font(.system(.body, design: .rounded).weight(.medium))
+                                Spacer()
+                                Text(formatDuration(log.duration))
+                                    .font(.caption)
+                                    .networkstyle()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(8)
+                            .background(Color.secondary.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+        // Background moved to parent container for coherence
+    }
+    
+    func formatDuration(_ duration: TimeInterval) -> String {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.hour, .minute, .second]
+        formatter.unitsStyle = .abbreviated
+        return formatter.string(from: duration) ?? ""
+    }
+}
+
+extension View {
+    func networkstyle() -> some View {
+        self.foregroundStyle(.secondary)
     }
 }

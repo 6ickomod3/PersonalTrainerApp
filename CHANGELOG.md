@@ -5,6 +5,30 @@ All notable changes to Personal Trainer App will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-12-15
+
+### Major Release - UI Refinement & Polish :sparkles:
+
+This release focuses on refining the visual consistency of the application and simplifying the user interaction model. It introduces a coherent list design for exercises, warm-ups, and cool-downs, and streamlines the home screen for a cleaner look.
+
+### Added
+- **Visual Coherence in Exercise List**
+  - **Checkmark Indicator**: Exercises now feature a read-only checkmark that turns green when you log a set for the day, matching the visual style of Warm-up and Cool-down items.
+  - **Target Volume Subtitle**: Added a second line of text referencing "Target Volume" to `ExerciseRow`, ensuring all list items share the same height and alignment.
+- **Context Menus**: Replaced long-press Edit Mode with native Context Menus for "Rename" and "Delete" actions in the Exercise List.
+
+### Changed
+- **Home Screen Simplification**:
+  - Removed decorative background icons from Muscle Group cards for a cleaner, less cluttered aesthetic.
+  - Reduced Muscle Group card height from 100 to 70 for a more compact grid.
+- **Interaction Model**: Removed the global "Edit Mode" triggered by long-press in the Exercise List to prevent jarring UI shifts.
+- **Typography**: Enforced Title Case for all new Muscle Groups and Exercises to ensure consistent presentation.
+
+### Technical Details
+- **Logic Refactor**: Moved `suggestedVolume` and `todaysVolume` calculation logic from `ExerciseDetailViewModel` to the `Exercise` model to support reuse in the list view.
+- **Performance**: Broke down `ExerciseListView` body into smaller `@ViewBuilder` properties to resolve compiler timeout errors.
+
+---
 ## [1.3.0] - 2025-12-07
 
 ### Major Release - Customizable Workout Guides 🛠️
@@ -35,7 +59,7 @@ This release unlocks the full potential of Workout Guides by making them complet
 
 ---
 
-
+## [1.2.0] - 2025-12-15
 ### Major Release - The Complete Dashboard ⭐️
 
 This release introduces a completely redesigned Home Screen with a unified dashboard, bringing together Calendar tracking, Cardio logging, and a modernized Strength training interface. It also transforms the Exercise Detail view into a comprehensive workout guide with warm-ups and cool-downs.

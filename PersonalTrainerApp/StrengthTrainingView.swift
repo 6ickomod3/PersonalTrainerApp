@@ -91,50 +91,27 @@ struct MuscleGroupCard: View {
     let group: MuscleGroup
     
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
+        ZStack(alignment: .leading) {
             // Background
             RoundedRectangle(cornerRadius: 16)
                 .fill(.ultraThinMaterial)
-                .frame(height: 100)
+                .frame(height: 70) // Reduced height from 100
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(LinearGradient(colors: [.white.opacity(0.1), .clear], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
                 )
             
             // Content
-            VStack(alignment: .leading) {
+            HStack {
+                Text(group.name)
+                    .font(.headline)
+                    .foregroundStyle(.red)
                 Spacer()
-                HStack {
-                    Text(group.name)
-                        .font(.headline)
-                        .foregroundStyle(.red)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
-            
-            // Decorative Icon (Subtle background)
-            GeometryReader { geo in
-                Image(systemName: iconForMuscle(group.name))
-                    .font(.system(size: 60))
-                    .foregroundStyle(LinearGradient(colors: [.orange.opacity(0.1), .red.opacity(0.05)], startPoint: .top, endPoint: .bottom))
-                    .offset(x: geo.size.width - 40, y: -10)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
-    }
-    
-    func iconForMuscle(_ name: String) -> String {
-        switch name.lowercased() {
-        case "chest": return "square.grid.2x2" // Placeholder, SF symbols limited for muscles
-        case "back": return "figure.strengthtraining.traditional"
-        case "leg": return "figure.run"
-        case "shoulder": return "figure.arms.open"
-        case "arm": return "arm" // Not real, fallback
-        default: return "dumbbell"
+            .padding()
         }
     }
 }

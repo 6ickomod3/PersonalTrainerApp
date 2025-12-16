@@ -77,7 +77,7 @@ struct AddExerciseSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Add") {
                         if !exerciseName.trimmingCharacters(in: .whitespaces).isEmpty {
-                            onAdd(exerciseName, weightMin, weightMax, weightStep, volumeImprovementPercent)
+                            onAdd(exerciseName.capitalized, weightMin, weightMax, weightStep, volumeImprovementPercent)
                             isPresented = false
                         }
                     }

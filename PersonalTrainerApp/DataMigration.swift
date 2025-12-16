@@ -11,8 +11,47 @@ struct DataMigration {
         migrateExerciseDates(modelContext: modelContext)
         migrateWorkoutSetRelationships(modelContext: modelContext)
         migrateWorkoutSetRelationships(modelContext: modelContext)
+        migrateExerciseMuscleGroups(modelContext: modelContext)
+        migrateExerciseDates(modelContext: modelContext)
+        migrateWorkoutSetRelationships(modelContext: modelContext)
         ensureUniqueIDs(modelContext: modelContext)
         deduplicateSetReferences(modelContext: modelContext)
+        migrateCapitalization(modelContext: modelContext)
+    }
+
+    /// Migration: Enforce Title Case for all Exercises and Muscle Groups
+    static func migrateCapitalization(modelContext: ModelContext) {
+        do {
+            let exercises = try modelContext.fetch(FetchDescriptor<Exercise>())
+            let groups = try modelContext.fetch(FetchDescriptor<MuscleGroup>())
+            var needsSave = false
+
+            for exercise in exercises {
+                let text = exercise.name
+                // Check if it's already capitalized to avoid unnecessary writes
+                let capitalized = text.capitalized
+                if text != capitalized {
+                    exercise.name = capitalized
+                    needsSave = true
+                }
+            }
+            
+            for group in groups {
+                let text = group.name
+                let capitalized = text.capitalized
+                if text != capitalized {
+                    group.name = capitalized
+                    needsSave = true
+                }
+            }
+
+            if needsSave {
+                try modelContext.save()
+                print("Capitalization migration completed successfully")
+            }
+        } catch {
+            print("Error during capitalization migration: \(error)")
+        }
     }
     
     /// Migration: Remove duplicate references to the same set object in an exercise's list

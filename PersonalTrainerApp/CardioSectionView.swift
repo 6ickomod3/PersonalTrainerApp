@@ -64,6 +64,13 @@ struct CardioSectionView: View {
                         HStack(spacing: 12) {
                             ForEach(todaysLogs) { log in
                                 CardioLogCell(log: log)
+                                    .contextMenu {
+                                        Button(role: .destructive) {
+                                            deleteLog(log)
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
                             }
                         }
                         .padding(.horizontal)
@@ -84,6 +91,10 @@ struct CardioSectionView: View {
     func addQuickLog(type: String, minutes: Double) {
         let newLog = CardioLog(type: type, duration: minutes * 60)
         modelContext.insert(newLog)
+    }
+    
+    func deleteLog(_ log: CardioLog) {
+        modelContext.delete(log)
     }
 }
 

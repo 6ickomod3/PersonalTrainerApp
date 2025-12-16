@@ -218,8 +218,14 @@ struct ExerciseDetailView: View {
                 .navigationTitle(exercise.name)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button(action: { showingSettingsSheet = true }) {
-                            Label("Settings", systemImage: "gear")
+                        HStack {
+                            NavigationLink(destination: ExerciseInstructionView(exercise: exercise)) {
+                                Image(systemName: "info.circle")
+                            }
+                            
+                            Button(action: { showingSettingsSheet = true }) {
+                                Label("Settings", systemImage: "gear")
+                            }
                         }
                     }
                 }
