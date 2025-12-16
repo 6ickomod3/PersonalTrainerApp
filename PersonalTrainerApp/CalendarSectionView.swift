@@ -234,8 +234,13 @@ struct DailyLogView: View {
                         ForEach(setsByExercise.keys.sorted(), id: \.self) { exerciseName in
                             if let exerciseSets = setsByExercise[exerciseName] {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(exerciseName)
-                                        .font(.system(.body, design: .rounded).weight(.medium))
+                                    if let firstSet = exerciseSets.first, let exercise = firstSet.exercise {
+                                        Text("\(exercise.muscleGroupName) - \(exerciseName)")
+                                            .font(.system(.body, design: .rounded).weight(.medium))
+                                    } else {
+                                        Text(exerciseName)
+                                            .font(.system(.body, design: .rounded).weight(.medium))
+                                    }
                                     
                                     Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 4) {
                                         ForEach(exerciseSets) { set in

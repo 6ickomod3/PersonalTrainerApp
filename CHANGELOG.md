@@ -5,6 +5,12 @@ All notable changes to Personal Trainer App will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2025-12-15
+
+### Added
+- **Enhanced Calendar Log Display**: Daily logs in the calendar now display the Muscle Group alongside the Exercise Name (e.g., "Core - Ab Crunch") for better context and clarity.
+
+
 ## [1.4.0] - 2025-12-15
 
 ### Major Release - UI Refinement & Polish :sparkles:
