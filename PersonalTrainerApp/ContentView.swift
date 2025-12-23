@@ -18,6 +18,9 @@ struct ContentView: View {
     @State private var isEditingOrder = false
     @State private var timerState = TimerState()
     
+    // Navigation
+    @State private var path = NavigationPath()
+    
     // Rename State
     @State private var muscleGroupToRename: MuscleGroup?
     @State private var newName = ""
@@ -34,7 +37,7 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            NavigationStack {
+            NavigationStack(path: $path) {
                 ScrollView {
                     VStack(spacing: 24) {
                         // Header
@@ -54,7 +57,7 @@ struct ContentView: View {
                         .padding(.top)
                         
                         // 1. Strength Section
-                        StrengthTrainingView()
+                        StrengthTrainingView(path: $path)
                             .environment(timerState)
                         
                         // 2. Cardio Section
@@ -88,6 +91,10 @@ struct ContentView: View {
                 }
                 .navigationDestination(for: MuscleGroup.self) { group in
                     ExerciseListView(muscleGroup: group)
+                        .environment(timerState)
+                }
+                .navigationDestination(for: Exercise.self) { exercise in
+                    ExerciseDetailView(exercise: exercise)
                         .environment(timerState)
                 }
             }

@@ -5,6 +5,28 @@ All notable changes to Personal Trainer App will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2025-12-22
+
+### Major Release - Safety & Insights 🛡️
+
+This release focuses on preventing accidental data loss with comprehensive confirmation dialogs and providing better training insights with monthly activity statistics. It also fixes critical navigation issues for a smoother user experience.
+
+### Added
+- **Delete Confirmations**:
+  - Implemented safety alerts for all destructive actions: Muscle Groups, Exercises, Warm Ups, Cool Downs, and Workout Sets.
+  - Deleting a Muscle Group now prompts for confirmation and warns about cascading deletion of exercises.
+- **Monthly Training Stats**:
+  - **Activity Overview**: Dashboard now shows the total number of "Strength Days" and "Cardio Days" for the currently selected month.
+  - **Dynamic Updates**: Stats automatically refresh as you navigate between months in the calendar view.
+- **Muscle Group Deletion**: Added a "Delete" action to the Muscle Group context menu (long-press).
+
+### Fixed
+- **Deep Linking Navigation**:
+  - Fixed the "Jump Back In" shortcut to correctly preserve navigation hierarchy.
+  - Tapping "Back" from a shortcut-launched exercise now correctly returns to the Muscle Group list instead of the Home screen.
+
+---
+
 ## [1.4.1] - 2025-12-15
 
 ### Added

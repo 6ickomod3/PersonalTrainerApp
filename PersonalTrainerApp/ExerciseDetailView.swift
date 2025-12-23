@@ -12,6 +12,7 @@ struct ExerciseDetailView: View {
     // ViewModel is optional because it depends on modelContext which is only available in body/onAppear
     @State private var viewModel: ExerciseDetailViewModel?
     @State private var showingSettingsSheet = false
+    @State private var setToDelete: WorkoutSet?
     
     var settings: AppSettings {
         appSettings.first ?? AppSettings()
@@ -176,7 +177,7 @@ struct ExerciseDetailView: View {
                                                     }
                                                     Spacer()
                                                     Button(action: {
-                                                        vm.deleteSet(set)
+                                                        setToDelete = set
                                                     }) {
                                                         Image(systemName: "trash.fill")
                                                             .font(.caption)
@@ -234,6 +235,20 @@ struct ExerciseDetailView: View {
                 }
                 .sheet(isPresented: $showingSettingsSheet) {
                     ExerciseSettingsSheet(isPresented: $showingSettingsSheet, exercise: exercise)
+                }
+                .alert("Delete Set?", isPresented: Binding(
+                    get: { setToDelete != nil },
+                    set: { if !$0 { setToDelete = nil } }
+                )) {
+                    Button("Cancel", role: .cancel) { }
+                    Button("Delete", role: .destructive) {
+                        if let set = setToDelete {
+                            vm.deleteSet(set)
+                            setToDelete = nil
+                        }
+                    }
+                } message: {
+                    Text("Are you sure you want to delete this log?")
                 }
             } else {
                 ProgressView()

@@ -27,12 +27,48 @@ struct CalendarSectionView: View {
         return map
     }
     
+    var monthlyStats: (strength: Int, cardio: Int) {
+        let calendar = Calendar.current
+        var strengthCount = 0
+        var cardioCount = 0
+        
+        for (date, types) in daysWithWorkouts {
+            if calendar.isDate(date, equalTo: currentMonth, toGranularity: .month) {
+                if types.contains("strength") { strengthCount += 1 }
+                if types.contains("cardio") { cardioCount += 1 }
+            }
+        }
+        
+        return (strengthCount, cardioCount)
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
+            HStack(alignment: .bottom) {
                 Label("Activity", systemImage: "calendar")
                     .font(.title3.bold())
+                
                 Spacer()
+                
+                // Monthly Stats
+                HStack(spacing: 12) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "dumbbell.fill")
+                            .font(.caption2)
+                        Text("\(monthlyStats.strength) days")
+                            .font(.caption.bold())
+                    }
+                    .foregroundStyle(.red)
+                    
+                    HStack(spacing: 4) {
+                        Image(systemName: "figure.run")
+                            .font(.caption2)
+                        Text("\(monthlyStats.cardio) days")
+                            .font(.caption.bold())
+                    }
+                    .foregroundStyle(.cyan)
+                }
+                .padding(.bottom, 2)
             }
             .padding(.horizontal)
 

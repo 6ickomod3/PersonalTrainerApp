@@ -19,12 +19,15 @@ struct ExerciseListView: View {
     @State private var exerciseToRename: Exercise?
     @State private var newName = ""
     
+    // Confirmations
+    @State private var exerciseToDelete: Exercise?
+    @State private var guideToDelete: MuscleGroupGuide?
+    
     // Feature: Limit visible exercises
     @State private var isExpanded = false
     let previewLimit = 5
     
     // Edit Mode
-
     
     var exercises: [Exercise] {
         allExercises
@@ -96,6 +99,38 @@ struct ExerciseListView: View {
         } message: {
             Text("Enter a new name for this exercise.")
         }
+        // Delete Confirmation: Exercise
+        .alert("Delete Exercise?", isPresented: Binding(
+            get: { exerciseToDelete != nil },
+            set: { if !$0 { exerciseToDelete = nil } }
+        )) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                if let exercise = exerciseToDelete {
+                    confirmDeleteExercise(exercise)
+                }
+            }
+        } message: {
+             if let exercise = exerciseToDelete {
+                 Text("Are you sure you want to delete '\(exercise.name)'? This works cannot be undone.")
+             }
+        }
+        // Delete Confirmation: Guide
+        .alert("Delete Item?", isPresented: Binding(
+            get: { guideToDelete != nil },
+            set: { if !$0 { guideToDelete = nil } }
+        )) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                if let guide = guideToDelete {
+                    confirmDeleteGuide(guide)
+                }
+            }
+        } message: {
+             if let guide = guideToDelete, let item = guide.guideItem {
+                 Text("Are you sure you want to remove '\(item.name)'?")
+             }
+        }
         .sheet(isPresented: $showingAddExerciseSheet) {
             AddExerciseSheet(isPresented: $showingAddExerciseSheet, muscleGroupName: muscleGroup.name) { name, min, max, step, percent in
                 addExercise(name: name, weightMin: min, weightMax: max, weightStep: step, volumeImprovementPercent: percent)
@@ -121,7 +156,7 @@ struct ExerciseListView: View {
                         GuideRow(item: item, color: .orange, muscleGroup: muscleGroup.name, section: "warmup")
                             .contextMenu {
                                 Button(role: .destructive) {
-                                    deleteGuide(item: guide, from: &muscleGroup.guides)
+                                    guideToDelete = guide
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
@@ -129,13 +164,14 @@ struct ExerciseListView: View {
                     }
                 }
                 .onMove(perform: moveWarmups)
-                .onDelete(perform: deleteWarmups)
+                .onDelete(perform: promptDeleteWarmups)
             }
         } header: {
             HStack {
                 Label("Warm Up", systemImage: "flame.fill")
                     .foregroundStyle(.orange)
                     .font(.headline)
+                    .textCase(nil)
                 Spacer()
                 Button(action: {
                     poolCategory = "warmup"
@@ -165,8 +201,7 @@ struct ExerciseListView: View {
                             newName = exercise.name
                         },
                         onDelete: {
-                            modelContext.delete(exercise)
-                            try? modelContext.save()
+                            exerciseToDelete = exercise
                         }
                     )
                     .contextMenu {
@@ -178,15 +213,14 @@ struct ExerciseListView: View {
                         }
                         
                         Button(role: .destructive) {
-                            modelContext.delete(exercise)
-                            try? modelContext.save()
+                            exerciseToDelete = exercise
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
                     }
                     .environment(timerState)
                 }
-                .onDelete(perform: deleteExercises)
+                .onDelete(perform: promptDeleteExercises)
                 
                 if exercises.count > previewLimit {
                     Button(action: {
@@ -210,6 +244,7 @@ struct ExerciseListView: View {
                 Label("Exercises", systemImage: "dumbbell.fill")
                     .foregroundStyle(.red)
                     .font(.headline)
+                    .textCase(nil)
                 Spacer()
                 Button(action: { showingAddExerciseSheet = true }) {
                     Image(systemName: "plus")
@@ -233,7 +268,7 @@ struct ExerciseListView: View {
                         GuideRow(item: item, color: .blue, muscleGroup: muscleGroup.name, section: "stretch")
                             .contextMenu {
                                 Button(role: .destructive) {
-                                    deleteGuide(item: guide, from: &muscleGroup.guides)
+                                    guideToDelete = guide
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
@@ -241,13 +276,14 @@ struct ExerciseListView: View {
                     }
                 }
                 .onMove(perform: moveStretches)
-                .onDelete(perform: deleteStretches)
+                .onDelete(perform: promptDeleteStretches)
             }
         } header: {
             HStack {
                 Label("Cool Down", systemImage: "snowflake")
                     .foregroundStyle(.blue)
                     .font(.headline)
+                    .textCase(nil)
                 Spacer()
                 Button(action: {
                     poolCategory = "stretch" // seeded as mapped to cooldown
@@ -278,19 +314,21 @@ struct ExerciseListView: View {
         isNavigatingToNew = true
     }
     
-    private func deleteExercises(at offsets: IndexSet) {
-        // Must handle deletion on 'visibleExercises' or the main 'exercises' array carefully
-        // If 'isExpanded' is false, offsets might be wrong if we deleted from full list while viewing partial
-        // However, EditMode Delete button only usually works on Rows present.
-        
-        // Let's rely on the ID to be safe, mapping offsets to the view model objects
-        let objectsToDelete = offsets.map { visibleExercises[$0] }
-        for object in objectsToDelete {
-            modelContext.delete(object)
+    // Prompt helpers for Swipe Actions
+    
+    private func promptDeleteExercises(at offsets: IndexSet) {
+        // Just take the first one for simplicity in this interaction
+        if let firstIndex = offsets.first {
+             exerciseToDelete = visibleExercises[firstIndex]
         }
-        try? modelContext.save()
     }
     
+    private func confirmDeleteExercise(_ exercise: Exercise) {
+        modelContext.delete(exercise)
+        try? modelContext.save()
+        exerciseToDelete = nil
+    }
+
     // Guide Management Helper
     
     // Helper to get raw array for moving
@@ -304,16 +342,31 @@ struct ExerciseListView: View {
         moveGuide(category: "warmup", from: source, to: destination)
     }
     
-    private func deleteWarmups(at offsets: IndexSet) {
-        deleteGuide(category: "warmup", at: offsets)
+    private func promptDeleteWarmups(at offsets: IndexSet) {
+        let guides = getGuides(category: "warmup")
+        if let index = offsets.first {
+            guideToDelete = guides[index]
+        }
     }
     
     private func moveStretches(from source: IndexSet, to destination: Int) {
         moveGuide(category: "stretch", from: source, to: destination)
     }
     
-    private func deleteStretches(at offsets: IndexSet) {
-        deleteGuide(category: "stretch", at: offsets)
+    private func promptDeleteStretches(at offsets: IndexSet) {
+        let guides = getGuides(category: "stretch")
+        if let index = offsets.first {
+            guideToDelete = guides[index]
+        }
+    }
+    
+    private func confirmDeleteGuide(_ guide: MuscleGroupGuide) {
+        if let index = muscleGroup.guides.firstIndex(of: guide) {
+            muscleGroup.guides.remove(at: index)
+        }
+        modelContext.delete(guide)
+        try? modelContext.save()
+        guideToDelete = nil
     }
     
     private func moveGuide(category: String, from source: IndexSet, to destination: Int) {
@@ -326,6 +379,8 @@ struct ExerciseListView: View {
         try? modelContext.save()
     }
     
+    // Deprecated direct delete helpers (replaced by confirmDeleteGuide)
+    /*
     private func deleteGuide(category: String, at offsets: IndexSet) {
         let guides = getGuides(category: category)
         let toDelete = offsets.map { guides[$0] }
@@ -338,14 +393,7 @@ struct ExerciseListView: View {
         }
         try? modelContext.save()
     }
-    
-    private func deleteGuide(item: MuscleGroupGuide, from collection: inout [MuscleGroupGuide]) {
-        if let index = collection.firstIndex(of: item) {
-            collection.remove(at: index)
-        }
-        modelContext.delete(item)
-        try? modelContext.save()
-    }
+    */
 }
 
 // Reuse Subcomponents (GuideRow, ExerciseRow) - but simplified for List usage

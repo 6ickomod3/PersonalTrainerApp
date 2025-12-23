@@ -130,7 +130,7 @@ open PersonalTrainerApp.xcodeproj
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed version history and upcoming features.
 
-**Current Version:** v1.4.0 (December 15, 2025) - UI Refinement & Polish :sparkles:
+**Current Version:** v1.5.0 (December 22, 2025) - Safety & Insights 🛡️
 
 ## Future Roadmap
 
