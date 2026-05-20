@@ -36,9 +36,7 @@ struct StrengthTrainingView: View {
             HStack {
                 Label("Strength", systemImage: "dumbbell.fill")
                     .font(.title3.bold())
-                    .foregroundStyle(
-                        LinearGradient(colors: [.orange, .red], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    )
+                    .foregroundStyle(Theme.accentGradient)
                 Spacer()
             }
             .padding(.horizontal)
@@ -53,7 +51,7 @@ struct StrengthTrainingView: View {
                             .font(.title2)
                             .foregroundStyle(.white)
                             .padding(10)
-                            .background(Circle().fill(.orange.gradient))
+                            .background(Circle().fill(Theme.accent.gradient))
                         
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Jump Back In")
@@ -73,8 +71,7 @@ struct StrengthTrainingView: View {
                             .foregroundStyle(.secondary)
                     }
                     .padding()
-                    .background(Color(.secondarySystemGroupedBackground))
-                    .cornerRadius(12)
+                    .themeCard(radius: Theme.innerRadius)
                     .padding(.horizontal)
                 }
                 .buttonStyle(.plain)
@@ -136,7 +133,7 @@ struct StrengthTrainingView: View {
         }
         
         modelContext.delete(group)
-        try? modelContext.save()
+        modelContext.safeSave()
         muscleGroupToDelete = nil
     }
 }
@@ -145,27 +142,17 @@ struct MuscleGroupCard: View {
     let group: MuscleGroup
     
     var body: some View {
-        ZStack(alignment: .leading) {
-            // Background
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-                .frame(height: 70) // Reduced height from 100
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(LinearGradient(colors: [.white.opacity(0.1), .clear], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
-                )
-            
-            // Content
-            HStack {
-                Text(group.name)
-                    .font(.headline)
-                    .foregroundStyle(.red)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding()
+        HStack {
+            Text(group.name)
+                .font(.headline)
+                .foregroundStyle(Theme.accent)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(Theme.muted)
         }
+        .padding(Theme.cardPadding)
+        .frame(height: 70)
+        .themeCard()
     }
 }

@@ -9,7 +9,7 @@ struct ExerciseListView: View {
     // Sheets
     @State private var showingAddExerciseSheet = false
     @State private var showingPoolSheet = false
-    @State private var poolCategory = "warmup" // "warmup" or "stretch"(cooldown)
+    @State private var poolCategory: GuideCategory = .warmup
     
     @Environment(TimerState.self) var timerState
     
@@ -22,6 +22,10 @@ struct ExerciseListView: View {
     // Confirmations
     @State private var exerciseToDelete: Exercise?
     @State private var guideToDelete: MuscleGroupGuide?
+    
+    // Collapsible guide sections (collapsed by default)
+    @State private var isWarmupExpanded = false
+    @State private var isCooldownExpanded = false
     
     // Feature: Limit visible exercises
     @State private var isExpanded = false
@@ -54,13 +58,13 @@ struct ExerciseListView: View {
     
     var warmups: [MuscleGroupGuide] {
         muscleGroup.guides
-            .filter { $0.category == "warmup" }
+            .filter { $0.category == GuideCategory.warmup.rawValue }
             .sorted { $0.displayOrder < $1.displayOrder }
     }
     
     var stretches: [MuscleGroupGuide] {
         muscleGroup.guides
-            .filter { $0.category == "stretch" }
+            .filter { $0.category == GuideCategory.stretch.rawValue }
             .sorted { $0.displayOrder < $1.displayOrder }
     }
 
@@ -93,7 +97,7 @@ struct ExerciseListView: View {
             Button("Save") {
                 if let exercise = exerciseToRename, !newName.trimmingCharacters(in: .whitespaces).isEmpty {
                     exercise.name = newName.capitalized
-                    try? modelContext.save()
+                    modelContext.safeSave()
                 }
             }
         } message: {
@@ -146,41 +150,44 @@ struct ExerciseListView: View {
     @ViewBuilder
     private var warmupSection: some View {
         Section {
-            if warmups.isEmpty {
-                Text("No warm-ups added.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(warmups) { guide in
-                    if let item = guide.guideItem {
-                        GuideRow(item: item, color: .orange, muscleGroup: muscleGroup.name, section: "warmup")
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    guideToDelete = guide
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
+            DisclosureGroup(isExpanded: $isWarmupExpanded) {
+                if warmups.isEmpty {
+                    Text("No warm-ups added.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(warmups) { guide in
+                        if let item = guide.guideItem {
+                            GuideRow(item: item, color: Theme.warmup, muscleGroup: muscleGroup.name, section: GuideCategory.warmup.rawValue)
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        guideToDelete = guide
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
                                 }
-                            }
+                        }
                     }
+                    .onMove(perform: moveWarmups)
+                    .onDelete(perform: promptDeleteWarmups)
                 }
-                .onMove(perform: moveWarmups)
-                .onDelete(perform: promptDeleteWarmups)
-            }
-        } header: {
-            HStack {
-                Label("Warm Up", systemImage: "flame.fill")
-                    .foregroundStyle(.orange)
-                    .font(.headline)
-                    .textCase(nil)
-                Spacer()
-                Button(action: {
-                    poolCategory = "warmup"
-                    showingPoolSheet = true
-                }) {
-                    Image(systemName: "plus")
-                        .foregroundStyle(.orange)
+            } label: {
+                HStack {
+                    Label("Warm Up", systemImage: "flame.fill")
+                        .foregroundStyle(Theme.warmup)
+                        .font(.headline)
+                    Spacer()
+                    Button(action: {
+                        poolCategory = .warmup
+                        showingPoolSheet = true
+                    }) {
+                        Image(systemName: "plus")
+                            .foregroundStyle(Theme.warmup)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
+            .tint(Theme.warmup)
         }
         .listRowSeparator(.hidden)
     }
@@ -242,13 +249,13 @@ struct ExerciseListView: View {
         } header: {
             HStack {
                 Label("Exercises", systemImage: "dumbbell.fill")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Theme.accent)
                     .font(.headline)
                     .textCase(nil)
                 Spacer()
                 Button(action: { showingAddExerciseSheet = true }) {
                     Image(systemName: "plus")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Theme.accent)
                 }
             }
         }
@@ -258,41 +265,44 @@ struct ExerciseListView: View {
     @ViewBuilder
     private var coolDownSection: some View {
         Section {
-            if stretches.isEmpty {
-                Text("No cool-downs added.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(stretches) { guide in
-                    if let item = guide.guideItem {
-                        GuideRow(item: item, color: .blue, muscleGroup: muscleGroup.name, section: "stretch")
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    guideToDelete = guide
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
+            DisclosureGroup(isExpanded: $isCooldownExpanded) {
+                if stretches.isEmpty {
+                    Text("No cool-downs added.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(stretches) { guide in
+                        if let item = guide.guideItem {
+                            GuideRow(item: item, color: Theme.cooldown, muscleGroup: muscleGroup.name, section: GuideCategory.stretch.rawValue)
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        guideToDelete = guide
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
                                 }
-                            }
+                        }
                     }
+                    .onMove(perform: moveStretches)
+                    .onDelete(perform: promptDeleteStretches)
                 }
-                .onMove(perform: moveStretches)
-                .onDelete(perform: promptDeleteStretches)
-            }
-        } header: {
-            HStack {
-                Label("Cool Down", systemImage: "snowflake")
-                    .foregroundStyle(.blue)
-                    .font(.headline)
-                    .textCase(nil)
-                Spacer()
-                Button(action: {
-                    poolCategory = "stretch" // seeded as mapped to cooldown
-                    showingPoolSheet = true
-                }) {
-                    Image(systemName: "plus")
-                        .foregroundStyle(.blue)
+            } label: {
+                HStack {
+                    Label("Cool Down", systemImage: "snowflake")
+                        .foregroundStyle(Theme.cooldown)
+                        .font(.headline)
+                    Spacer()
+                    Button(action: {
+                        poolCategory = .stretch
+                        showingPoolSheet = true
+                    }) {
+                        Image(systemName: "plus")
+                            .foregroundStyle(Theme.cooldown)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
+            .tint(Theme.cooldown)
         }
         .listRowSeparator(.hidden)
     }
@@ -308,7 +318,7 @@ struct ExerciseListView: View {
         newExercise.displayOrder = exercises.count
         
         modelContext.insert(newExercise)
-        try? modelContext.save()
+        modelContext.safeSave()
         
         newlyCreatedExercise = newExercise
         isNavigatingToNew = true
@@ -325,36 +335,36 @@ struct ExerciseListView: View {
     
     private func confirmDeleteExercise(_ exercise: Exercise) {
         modelContext.delete(exercise)
-        try? modelContext.save()
+        modelContext.safeSave()
         exerciseToDelete = nil
     }
 
     // Guide Management Helper
     
     // Helper to get raw array for moving
-    func getGuides(category: String) -> [MuscleGroupGuide] {
+    func getGuides(category: GuideCategory) -> [MuscleGroupGuide] {
         muscleGroup.guides
-            .filter { $0.category == category }
+            .filter { $0.category == category.rawValue }
             .sorted { $0.displayOrder < $1.displayOrder }
     }
     
     private func moveWarmups(from source: IndexSet, to destination: Int) {
-        moveGuide(category: "warmup", from: source, to: destination)
+        moveGuide(category: .warmup, from: source, to: destination)
     }
     
     private func promptDeleteWarmups(at offsets: IndexSet) {
-        let guides = getGuides(category: "warmup")
+        let guides = getGuides(category: .warmup)
         if let index = offsets.first {
             guideToDelete = guides[index]
         }
     }
     
     private func moveStretches(from source: IndexSet, to destination: Int) {
-        moveGuide(category: "stretch", from: source, to: destination)
+        moveGuide(category: .stretch, from: source, to: destination)
     }
     
     private func promptDeleteStretches(at offsets: IndexSet) {
-        let guides = getGuides(category: "stretch")
+        let guides = getGuides(category: .stretch)
         if let index = offsets.first {
             guideToDelete = guides[index]
         }
@@ -365,18 +375,18 @@ struct ExerciseListView: View {
             muscleGroup.guides.remove(at: index)
         }
         modelContext.delete(guide)
-        try? modelContext.save()
+        modelContext.safeSave()
         guideToDelete = nil
     }
     
-    private func moveGuide(category: String, from source: IndexSet, to destination: Int) {
+    private func moveGuide(category: GuideCategory, from source: IndexSet, to destination: Int) {
         var guides = getGuides(category: category)
         guides.move(fromOffsets: source, toOffset: destination)
         
         for (index, guide) in guides.enumerated() {
             guide.displayOrder = index
         }
-        try? modelContext.save()
+        modelContext.safeSave()
     }
     
     // Deprecated direct delete helpers (replaced by confirmDeleteGuide)
@@ -394,272 +404,4 @@ struct ExerciseListView: View {
         try? modelContext.save()
     }
     */
-}
-
-// Reuse Subcomponents (GuideRow, ExerciseRow) - but simplified for List usage
-// GridRow handles navigation link internally, works fine in List mostly, but might have double selection effect
-// Native List uses NavigationLink implicitly if present.
-
-// Refined GuideRow for List
-struct GuideRow: View {
-    let item: GuideItem
-    let color: Color
-    let muscleGroup: String
-    let section: String
-    @Environment(TimerState.self) var timerState
-    
-    @State private var isChecked = false
-    
-    private var storageKey: String {
-        "guide_\(muscleGroup)_\(section)_\(item.name)"
-    }
-    
-    var body: some View {
-        HStack {
-            // Check Circle
-            Button(action: toggleState) {
-                Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundStyle(isChecked ? .green : .gray.opacity(0.3))
-            }
-            .buttonStyle(.plain)
-            
-            // Content
-            NavigationLink(destination: GuideDetailView(item: item, color: color).environment(timerState)) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(item.name)
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(color)
-                    
-                    Text(item.duration)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .onAppear(perform: loadState)
-    }
-    
-    private func loadState() {
-        if let lastDate = UserDefaults.standard.object(forKey: storageKey) as? Date {
-            isChecked = Calendar.current.isDateInToday(lastDate)
-        } else {
-            isChecked = false
-        }
-    }
-    
-    private func toggleState() {
-        let newState = !isChecked
-        isChecked = newState
-        
-        if newState {
-            UserDefaults.standard.set(Date(), forKey: storageKey)
-        } else {
-            UserDefaults.standard.removeObject(forKey: storageKey)
-        }
-    }
-}
-
-// Refined ExerciseRow for List
-struct ExerciseRow: View {
-    let exercise: Exercise
-    let onRename: () -> Void
-    let onDelete: () -> Void
-    @Environment(TimerState.self) var timerState
-    
-    var body: some View {
-        NavigationLink(destination: ExerciseDetailView(exercise: exercise).environment(timerState)) {
-            HStack {
-                // Leading Status Icon (Read-only)
-                // Matches GuideRow indentation
-                Image(systemName: isLoggedToday ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundStyle(isLoggedToday ? .green : .gray.opacity(0.3))
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(exercise.name)
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(.red)
-                    
-                    // Subtitle: Suggested Volume to match height
-                    Group {
-                         if let suggested = exercise.suggestedVolume {
-                             Text("Target Volume: \(Int(suggested)) lbs")
-                         } else {
-                             Text("Start logging to see targets")
-                         }
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
-                
-                Spacer()
-            }
-        }
-    }
-    
-    private var isLoggedToday: Bool {
-        guard let lastDate = exercise.lastLogDate else { return false }
-        return Calendar.current.isDateInToday(lastDate)
-    }
-}
-
-// Keep GuideDetailView, ManageGuidesView (can be deprecated or kept as fallback), GuidePoolSheet
-// GuidePoolSheet needs to be available here since we call it directly now.
-
-struct GuidePoolSheet: View {
-    @Environment(\.modelContext) private var modelContext
-    let muscleGroup: MuscleGroup
-    let category: String
-    @Binding var isPresented: Bool
-    
-    var descriptorType: String {
-        category == "warmup" ? "warmup" : "cooldown"
-    }
-    
-    @Query(sort: \GuideItem.name) var allGuides: [GuideItem]
-    
-    var availableGuides: [GuideItem] {
-        allGuides.filter { $0.type == descriptorType }
-    }
-    
-    @State private var showingCreateForm = false
-    @State private var newItemName = ""
-    @State private var newItemDuration = ""
-    @State private var newItemInstruction = ""
-    
-    var body: some View {
-        NavigationStack {
-            List {
-                Section(header: Text("Create New")) {
-                    DisclosureGroup("Create Custom \(descriptorType == "warmup" ? "Warm Up" : "Cool Down")", isExpanded: $showingCreateForm) {
-                        VStack(spacing: 12) {
-                            TextField("Name", text: $newItemName)
-                            TextField("Duration (e.g. 30s)", text: $newItemDuration)
-                            TextField("Instruction", text: $newItemInstruction, axis: .vertical)
-                            
-                            Button("Add & Select") {
-                                createAndAdd()
-                            }
-                            .disabled(newItemName.isEmpty)
-                            .buttonStyle(.borderedProminent)
-                            .frame(maxWidth: .infinity)
-                        }
-                        .padding(.vertical, 8)
-                    }
-                }
-                
-                Section(header: Text("Select from Pool")) {
-                    ForEach(availableGuides) { item in
-                        Button(action: {
-                            addToMuscleGroup(item)
-                        }) {
-                            HStack {
-                                Image(systemName: item.icon)
-                                    .foregroundStyle(.secondary)
-                                VStack(alignment: .leading) {
-                                    Text(item.name)
-                                        .foregroundStyle(.primary)
-                                    Text(item.instruction)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                }
-                                Spacer()
-                                if isAlreadyAdded(item) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.green)
-                                } else {
-                                    Image(systemName: "plus.circle")
-                                        .foregroundStyle(.blue)
-                                }
-                            }
-                        }
-                        .disabled(isAlreadyAdded(item))
-                    }
-                }
-            }
-            .navigationTitle("Add to \(muscleGroup.name)")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Done") { isPresented = false }
-                }
-            }
-        }
-    }
-    
-    private func isAlreadyAdded(_ item: GuideItem) -> Bool {
-        muscleGroup.guides.contains { $0.guideItem?.id == item.id && $0.category == category }
-    }
-    
-    private func addToMuscleGroup(_ item: GuideItem) {
-        let currentMax = muscleGroup.guides
-            .filter { $0.category == category }
-            .map { $0.displayOrder }
-            .max() ?? -1
-        
-        let newRelation = MuscleGroupGuide(displayOrder: currentMax + 1, category: category, guideItem: item)
-        muscleGroup.guides.append(newRelation)
-        try? modelContext.save()
-        isPresented = false
-    }
-    
-    private func createAndAdd() {
-        let newItem = GuideItem(
-            name: newItemName,
-            type: descriptorType,
-            duration: newItemDuration.isEmpty ? "1 min" : newItemDuration,
-            instruction: newItemInstruction.isEmpty ? "Follow instructions." : newItemInstruction,
-            icon: descriptorType == "warmup" ? "flame" : "snowflake",
-            isCustom: true
-        )
-        modelContext.insert(newItem)
-        addToMuscleGroup(newItem)
-    }
-}
-
-struct GuideDetailView: View {
-    let item: GuideItem
-    let color: Color
-    
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Header
-                HStack {
-                    Label(item.name, systemImage: item.icon)
-                        .font(.title.bold())
-                        .foregroundStyle(color)
-                    Spacer()
-                }
-                .padding(.bottom, 10)
-                
-                // Duration Tag
-                Text("Duration: \(item.duration)")
-                    .font(.subheadline.bold())
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(color.opacity(0.1))
-                    .foregroundStyle(color)
-                    .clipShape(Capsule())
-                
-                Divider()
-                
-                // Instructions
-                Text("Instructions")
-                    .font(.headline)
-                
-                Text(item.instruction)
-                    .font(.body)
-                    .lineSpacing(4)
-                    .foregroundStyle(.secondary)
-                
-                Spacer()
-            }
-            .padding()
-        }
-        .navigationTitle("Guide")
-        .navigationBarTitleDisplayMode(.inline)
-    }
 }

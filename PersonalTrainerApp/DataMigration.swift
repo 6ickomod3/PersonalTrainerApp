@@ -6,12 +6,6 @@ struct DataMigration {
     /// Performs all necessary migrations on existing data
     static func performMigrations(modelContext: ModelContext) {
         migrateExerciseMuscleGroups(modelContext: modelContext)
-        migrateExerciseMuscleGroups(modelContext: modelContext)
-        migrateExerciseDates(modelContext: modelContext)
-        migrateExerciseDates(modelContext: modelContext)
-        migrateWorkoutSetRelationships(modelContext: modelContext)
-        migrateWorkoutSetRelationships(modelContext: modelContext)
-        migrateExerciseMuscleGroups(modelContext: modelContext)
         migrateExerciseDates(modelContext: modelContext)
         migrateWorkoutSetRelationships(modelContext: modelContext)
         ensureUniqueIDs(modelContext: modelContext)
@@ -207,7 +201,7 @@ struct DataMigration {
         let name = exerciseName.lowercased()
         
         // Chest exercises
-        if name.contains("bench") || name.contains("press") && name.contains("chest") ||
+        if name.contains("bench") || (name.contains("press") && name.contains("chest")) ||
            name.contains("fly") || name.contains("push up") {
             return "Chest"
         }

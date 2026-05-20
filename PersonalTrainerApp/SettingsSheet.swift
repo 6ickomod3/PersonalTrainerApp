@@ -44,7 +44,7 @@ struct SettingsSheet: View {
                         settings.maxStorageDays = 4
                         settings.defaultTimerDuration = 90
                     }
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.accent)
                 }
                 
                 Section(header: Text("Danger Zone")) {
@@ -58,8 +58,12 @@ struct SettingsSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") {
+                        // Clamp values to safe ranges before saving
+                        settings.defaultTimerDuration = max(10, min(600, settings.defaultTimerDuration))
+                        settings.maxStorageDays = max(1, min(365, settings.maxStorageDays))
+                        
                         // Ensure changes are saved
-                        try? modelContext.save()
+                        modelContext.safeSave()
                         isPresented = false
                     }
                 }
@@ -86,24 +90,10 @@ struct SettingsSheet: View {
             try modelContext.delete(model: WorkoutSet.self)
             
             // Seed defaults
-            seedMuscleGroups()
-            seedExercises()
+            SeedHelper.seedMuscleGroups(context: modelContext)
+            SeedHelper.seedExercises(context: modelContext)
         } catch {
             print("Failed to reset data: \(error)")
-        }
-    }
-    
-    private func seedMuscleGroups() {
-        let defaultGroups = MuscleGroup.defaultGroups
-        for group in defaultGroups {
-            modelContext.insert(group)
-        }
-    }
-    
-    private func seedExercises() {
-        let sampleExercises = Exercise.sampleExercises
-        for exercise in sampleExercises {
-            modelContext.insert(exercise)
         }
     }
 }

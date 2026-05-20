@@ -1,25 +1,12 @@
 import SwiftUI
 
-// MARK: - Visual Effect Blur
-struct VisualEffectBlur: UIViewRepresentable {
-    var style: UIBlurEffect.Style
-    
-    func makeUIView(context: Context) -> UIVisualEffectView {
-        let blurEffect = UIBlurEffect(style: style)
-        let blurView = UIVisualEffectView(effect: blurEffect)
-        return blurView
-    }
-    
-    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {}
-}
-
 struct TimerView: View {
     @State var timerManager: TimerManager
     @State private var isExpanded: Bool = false
     @State private var dragOffset: CGFloat = 0
     var timerState: TimerState
     var defaultTimerDuration: Int = 90
-    
+
     init(timerState: TimerState, defaultTimerDuration: Int = 90) {
         self.timerState = timerState
         self.defaultTimerDuration = defaultTimerDuration
@@ -87,7 +74,7 @@ struct TimerView: View {
                     Text(timerManager.formattedTime)
                         .font(.system(size: 60, weight: .semibold, design: .default))
                         .contentTransition(.numericText())
-                        .foregroundStyle(timerManager.isRunning ? .blue : .primary)
+                        .foregroundStyle(timerManager.isRunning ? Theme.highlight : .primary)
                     
                     // Control Buttons
                     HStack(spacing: 16) {
@@ -136,11 +123,9 @@ struct TimerView: View {
                 .padding(.bottom, 50)
             }
             .background(
-                ZStack {
-                    VisualEffectBlur(style: .systemThickMaterial)
-                    Color.white.opacity(0.2)
-                }
-                .ignoresSafeArea(edges: .bottom)
+                Rectangle()
+                    .fill(.thickMaterial)
+                    .ignoresSafeArea(edges: .bottom)
             )
             .clipShape(UnevenRoundedRectangle(topLeadingRadius: 20, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 20))
             .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: -2)
@@ -169,17 +154,15 @@ struct TimerView: View {
             Text(timerManager.formattedTime)
                 .font(.system(size: 20, weight: .semibold, design: .default))
                 .monospacedDigit()
-                .foregroundStyle(timerManager.isRunning ? .blue : .primary)
+                .foregroundStyle(timerManager.isRunning ? Theme.highlight : .primary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
                 .padding(.bottom, 20)
         }
         .background(
-            ZStack {
-                VisualEffectBlur(style: .systemThickMaterial)
-                Color.white.opacity(0.2)
-            }
-            .ignoresSafeArea(edges: .bottom)
+            Rectangle()
+                .fill(.thickMaterial)
+                .ignoresSafeArea(edges: .bottom)
         )
         .clipShape(UnevenRoundedRectangle(topLeadingRadius: 20, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 20))
         .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: -2)

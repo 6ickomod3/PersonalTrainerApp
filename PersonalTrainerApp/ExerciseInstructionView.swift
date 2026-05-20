@@ -16,14 +16,17 @@ struct ExerciseInstructionView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                // Analytics Section
+                ExerciseAnalyticsView(exercise: exercise)
+                
                 // Video Section
                 if let videoID = videoID {
                     YouTubeView(videoID: videoID)
                         .frame(height: 220)
-                        .cornerRadius(12)
+                        .cornerRadius(Theme.innerRadius)
                 } else {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.secondary.opacity(0.1))
+                    RoundedRectangle(cornerRadius: Theme.innerRadius)
+                        .fill(Color.secondary.opacity(0.08))
                         .frame(height: 220)
                         .overlay(
                             VStack(spacing: 8) {
@@ -118,7 +121,7 @@ struct ExerciseInstructionView: View {
                                     }
                                 }) {
                                     Image(systemName: "trash")
-                                        .foregroundStyle(.red.opacity(0.6))
+                                        .foregroundStyle(Theme.accent.opacity(0.6))
                                         .font(.caption)
                                 }
                                 .buttonStyle(.borderless)

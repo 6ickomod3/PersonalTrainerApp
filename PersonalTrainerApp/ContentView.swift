@@ -17,24 +17,20 @@ struct ContentView: View {
     @State private var newGroupName = ""
     @State private var isEditingOrder = false
     @State private var timerState = TimerState()
-    
+
     // Navigation
     @State private var path = NavigationPath()
-    
+
     // Rename State
     @State private var muscleGroupToRename: MuscleGroup?
     @State private var newName = ""
-    
+
     var settings: AppSettings {
         appSettings.first ?? AppSettings()
     }
-    
-    // Dynamic spacer height based on timer state and actual measurements
-    var spacerHeight: CGFloat {
-        let timerHeight = timerState.isExpanded ? timerState.expandedHeight : timerState.collapsedHeight
-        return timerHeight > 0 ? timerHeight : (timerState.isExpanded ? 250 : 60)
-    }
-    
+
+    var spacerHeight: CGFloat { timerState.spacerHeight }
+
     var body: some View {
         ZStack {
             NavigationStack(path: $path) {
@@ -46,7 +42,7 @@ struct ContentView: View {
                                 Text(Date().formatted(date: .complete, time: .omitted).uppercased())
                                     .font(.caption.bold())
                                     .foregroundStyle(.secondary)
-                                
+
                                 Text("Let's crush it, Ji! 💪")
                                     .font(.title2.bold())
                                     .foregroundStyle(.primary)
@@ -55,17 +51,17 @@ struct ContentView: View {
                         }
                         .padding(.horizontal)
                         .padding(.top)
-                        
+
                         // 1. Strength Section
                         StrengthTrainingView(path: $path)
                             .environment(timerState)
-                        
+
                         // 2. Cardio Section
                         CardioSectionView()
-                        
+
                         // 3. Calendar Section
                         CalendarSectionView()
-                        
+
                         // Spacer for Timer
                         Color.clear.frame(height: spacerHeight)
                     }
@@ -84,7 +80,7 @@ struct ContentView: View {
                                 .foregroundStyle(.primary)
                         }
                     }
-                    
+
                     ToolbarItem(placement: .topBarTrailing) {
                         // Placeholders or future actions
                     }
@@ -98,7 +94,7 @@ struct ContentView: View {
                         .environment(timerState)
                 }
             }
-            
+
             // Fixed Timer at Bottom
             VStack {
                 Spacer()
@@ -112,10 +108,10 @@ struct ContentView: View {
                 modelContext.insert(AppSettings())
             }
             if muscleGroups.isEmpty {
-                seedMuscleGroups()
+                SeedHelper.seedMuscleGroups(context: modelContext)
             }
             if exercises.isEmpty {
-                seedExercises()
+                SeedHelper.seedExercises(context: modelContext)
             }
             seedGuides()
         }
@@ -123,64 +119,49 @@ struct ContentView: View {
             SettingsSheet(isPresented: $showingSettingsSheet, settings: settings)
         }
     }
-    
-    // CRUD Operations (Preserved)
-    private func seedMuscleGroups() {
-        let defaultGroups = MuscleGroup.defaultGroups
-        for group in defaultGroups {
-            modelContext.insert(group)
-        }
-    }
-    
-    private func seedExercises() {
-        let sampleExercises = Exercise.sampleExercises
-        for exercise in sampleExercises {
-            modelContext.insert(exercise)
-        }
-    }
-    
+
     private func seedGuides() {
         // Check if we already have guides (simple check)
         let descriptor = FetchDescriptor<GuideItem>()
         let existingCount = (try? modelContext.fetchCount(descriptor)) ?? 0
-        
+
         if existingCount > 0 { return }
-        
+
         print("Seeding Guides...")
-        
+
         // Fetch existing muscle groups
         let groupDescriptor = FetchDescriptor<MuscleGroup>()
         guard let groups = try? modelContext.fetch(groupDescriptor) else { return }
-        
+
         // Cache created items to reuse them (Global Pool concept)
         var itemCache: [String: GuideItem] = [:]
-        
+
         for group in groups {
             // Warmups
             let staticWarmups = MuscleGroupContent.warmups(for: group.name)
             for (index, staticItem) in staticWarmups.enumerated() {
-                let guideItem = getOrCreateGuideItem(from: staticItem, type: "warmup", cache: &itemCache)
-                let relation = MuscleGroupGuide(displayOrder: index, category: "warmup", guideItem: guideItem)
+                let guideItem = getOrCreateGuideItem(from: staticItem, type: .warmup, cache: &itemCache)
+                let relation = MuscleGroupGuide(displayOrder: index, category: .warmup, guideItem: guideItem)
                 group.guides.append(relation)
             }
-            
+
             // Stretches (Cooldowns)
             let staticStretches = MuscleGroupContent.stretches(for: group.name)
             for (index, staticItem) in staticStretches.enumerated() {
-                let guideItem = getOrCreateGuideItem(from: staticItem, type: "cooldown", cache: &itemCache)
-                let relation = MuscleGroupGuide(displayOrder: index, category: "stretch", guideItem: guideItem)
+                let guideItem = getOrCreateGuideItem(from: staticItem, type: .cooldown, cache: &itemCache)
+                let relation = MuscleGroupGuide(displayOrder: index, category: .stretch, guideItem: guideItem)
                 group.guides.append(relation)
             }
         }
-        
-        try? modelContext.save()
+
+        modelContext.safeSave()
     }
-    
-    private func getOrCreateGuideItem(from staticItem: StaticGuideItem, type: String, cache: inout [String: GuideItem]) -> GuideItem {
+
+    private func getOrCreateGuideItem(from staticItem: StaticGuideItem, type: GuideType, cache: inout [String: GuideItem]) -> GuideItem {
         if let existing = cache[staticItem.name] {
             return existing
         }
-        
+
         let newItem = GuideItem(
             name: staticItem.name,
             type: type,

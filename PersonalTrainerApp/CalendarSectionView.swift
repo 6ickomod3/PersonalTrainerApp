@@ -58,7 +58,7 @@ struct CalendarSectionView: View {
                         Text("\(monthlyStats.strength) days")
                             .font(.caption.bold())
                     }
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Theme.accent)
                     
                     HStack(spacing: 4) {
                         Image(systemName: "figure.run")
@@ -66,7 +66,7 @@ struct CalendarSectionView: View {
                         Text("\(monthlyStats.cardio) days")
                             .font(.caption.bold())
                     }
-                    .foregroundStyle(.cyan)
+                    .foregroundStyle(Theme.cardio)
                 }
                 .padding(.bottom, 2)
             }
@@ -85,8 +85,7 @@ struct CalendarSectionView: View {
                         .transition(.opacity)
                 }
             }
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .themeCard()
             .padding(.horizontal)
         }
         // Keep the layout animation for smooth resizing, but it won't be "falling"
@@ -163,8 +162,7 @@ struct CalendarGrid: View {
     }
     
     func daysInMonth() -> [Date?] {
-        guard let monthInterval = Calendar.current.dateInterval(of: .month, for: currentMonth),
-              let monthFirstWeek = Calendar.current.dateInterval(of: .weekOfMonth, for: monthInterval.start) else {
+        guard let monthInterval = Calendar.current.dateInterval(of: .month, for: currentMonth) else {
             return []
         }
         
@@ -204,7 +202,7 @@ struct DayCell: View {
                 .background(
                     Group {
                         if isToday {
-                            Circle().fill(Color.blue)
+                            Circle().fill(Theme.highlight)
                         } else if isSelected {
                             Circle().fill(Color.primary.opacity(0.8))
                         }
@@ -214,10 +212,10 @@ struct DayCell: View {
                     HStack(spacing: 2) {
                         if !isSelected, let acts = activities {
                             if acts.contains("strength") {
-                                Circle().fill(Color.red).frame(width: 4, height: 4)
+                                Circle().fill(Theme.accent).frame(width: 4, height: 4)
                             }
                             if acts.contains("cardio") {
-                                Circle().fill(Color.cyan).frame(width: 4, height: 4)
+                                Circle().fill(Theme.cardio).frame(width: 4, height: 4)
                             }
                         }
                     }
@@ -265,7 +263,7 @@ struct DailyLogView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Label("Strength", systemImage: "dumbbell.fill")
                             .font(.subheadline)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(Theme.accent)
                         
                         ForEach(setsByExercise.keys.sorted(), id: \.self) { exerciseName in
                             if let exerciseSets = setsByExercise[exerciseName] {
@@ -296,8 +294,8 @@ struct DailyLogView: View {
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(8)
-                                .background(Color.secondary.opacity(0.1))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .background(Color.secondary.opacity(0.08))
+                                .clipShape(RoundedRectangle(cornerRadius: Theme.innerRadius))
                             }
                         }
                     }
@@ -307,7 +305,7 @@ struct DailyLogView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Label("Cardio", systemImage: "figure.run")
                             .font(.subheadline)
-                            .foregroundStyle(.cyan)
+                            .foregroundStyle(Theme.cardio)
                         
                         ForEach(filteredCardio) { log in
                             HStack {
@@ -320,8 +318,8 @@ struct DailyLogView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(8)
-                            .background(Color.secondary.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .background(Color.secondary.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.innerRadius))
                         }
                     }
                 }

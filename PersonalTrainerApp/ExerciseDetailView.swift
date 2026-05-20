@@ -18,11 +18,7 @@ struct ExerciseDetailView: View {
         appSettings.first ?? AppSettings()
     }
     
-    // Dynamic spacer height based on timer state
-    var spacerHeight: CGFloat {
-        let timerHeight = timerState.isExpanded ? timerState.expandedHeight : timerState.collapsedHeight
-        return timerHeight > 0 ? timerHeight : (timerState.isExpanded ? 250 : 60)
-    }
+    var spacerHeight: CGFloat { timerState.spacerHeight }
     
     init(exercise: Exercise) {
         self.exercise = exercise
@@ -58,7 +54,7 @@ struct ExerciseDetailView: View {
                                                 .foregroundStyle(.secondary)
                                             Text(String(format: "%.0f", suggested) + " lbs")
                                                 .font(.headline)
-                                                .foregroundStyle(.blue)
+                                                .foregroundStyle(Theme.highlight)
                                         }
                                         Spacer()
                                     }
@@ -151,7 +147,7 @@ struct ExerciseDetailView: View {
                                                     .foregroundStyle(.secondary)
                                                 Text("\(dayData.totalVolume, specifier: "%.0f") lbs")
                                                     .font(.headline)
-                                                    .foregroundStyle(.blue)
+                                                    .foregroundStyle(Theme.highlight)
                                             }
                                         }
                                         .padding(.bottom, 4)
@@ -202,8 +198,8 @@ struct ExerciseDetailView: View {
                                         .padding(.vertical, 8)
                                     }
                                     .padding(12)
-                                    .background(Color(.systemGray6))
-                                    .cornerRadius(8)
+                                    .background(Theme.innerCardBackground)
+                                    .cornerRadius(Theme.innerRadius)
                                 }
                             }
                         }

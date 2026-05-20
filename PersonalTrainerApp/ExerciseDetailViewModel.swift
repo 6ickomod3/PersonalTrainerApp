@@ -89,7 +89,7 @@ class ExerciseDetailViewModel {
         
         // 2. Explicit insert and save (Fix for validation error)
         modelContext.insert(newSet)
-        try? modelContext.save()
+        modelContext.safeSave()
     }
     
     func deleteSet(_ set: WorkoutSet) {
@@ -102,7 +102,7 @@ class ExerciseDetailViewModel {
         
         // 2. Delete from context
         modelContext.delete(set)
-        try? modelContext.save()
+        modelContext.safeSave()
     }
     
     func cleanupOldSets(maxDays: Int) {

@@ -13,7 +13,8 @@ struct PersonalTrainerAppApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .tint(Theme.accent)
         }
-        .modelContainer(for: [Exercise.self, MuscleGroup.self, WorkoutSet.self, AppSettings.self, CardioLog.self])
+        .modelContainer(for: [Exercise.self, MuscleGroup.self, WorkoutSet.self, AppSettings.self, CardioLog.self, GuideItem.self, MuscleGroupGuide.self])
     }
 }

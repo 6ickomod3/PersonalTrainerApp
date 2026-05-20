@@ -72,7 +72,7 @@ struct ExerciseSettingsSheet: View {
                         exercise.weightStep = 5.0
                         exercise.volumeImprovementPercent = 3.0
                     }
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.accent)
                 }
             }
             .navigationTitle("Exercise Settings")
@@ -80,8 +80,14 @@ struct ExerciseSettingsSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") {
+                        // Clamp values to safe ranges before saving
+                        exercise.weightMin = max(0, exercise.weightMin)
+                        exercise.weightMax = max(exercise.weightMin + 1, exercise.weightMax)
+                        exercise.weightStep = max(0.5, exercise.weightStep)
+                        exercise.volumeImprovementPercent = max(0, min(100, exercise.volumeImprovementPercent))
+                        
                         // Ensure changes are saved
-                        try? modelContext.save()
+                        modelContext.safeSave()
                         isPresented = false
                     }
                 }

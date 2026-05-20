@@ -19,25 +19,25 @@ struct CardioSectionView: View {
             HStack {
                 Label("Cardio", systemImage: "figure.run")
                     .font(.title3.bold())
-                    .foregroundStyle(.cyan)
+                    .foregroundStyle(Theme.cardio)
                 
                 Spacer()
                 
                 Button(action: { showingAddCardio = true }) {
                     Image(systemName: "plus.circle.fill")
                         .font(.title2)
-                        .foregroundStyle(.cyan)
+                        .foregroundStyle(Theme.cardio)
                 }
             }
             .padding(.horizontal)
             
             // Content Card
             ZStack {
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: Theme.cardRadius)
                     .fill(.ultraThinMaterial)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(LinearGradient(colors: [.cyan.opacity(0.3), .blue.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: Theme.cardRadius)
+                            .stroke(Theme.cardioStroke, lineWidth: 1)
                     )
                 
                 if todaysLogs.isEmpty {
@@ -55,8 +55,8 @@ struct CardioSectionView: View {
                         .font(.caption.bold())
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(Capsule().fill(Color.cyan.opacity(0.2)))
-                        .foregroundStyle(.cyan)
+                        .background(Capsule().fill(Theme.cardio.opacity(0.2)))
+                        .foregroundStyle(Theme.cardio)
                     }
                     .padding()
                 } else {
@@ -111,7 +111,7 @@ struct CardioLogCell: View {
                     .foregroundStyle(.secondary)
             }
             .font(.caption)
-            .foregroundStyle(.cyan)
+            .foregroundStyle(Theme.cardio)
             
             Text(log.type)
                 .font(.headline)
@@ -124,11 +124,11 @@ struct CardioLogCell: View {
         }
         .padding(10)
         .frame(width: 110, height: 90)
-        .background(Color.black.opacity(0.2))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(Color.black.opacity(0.15))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.innerRadius))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: Theme.innerRadius)
+                .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
         )
     }
     

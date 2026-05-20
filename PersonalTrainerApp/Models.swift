@@ -28,20 +28,36 @@ class MuscleGroup {
     }
 }
 
+// MARK: - Guide Category Constants
+// These enums provide type safety for guide categories stored as raw strings in SwiftData.
+// The rawValue matches what's persisted in the database — no migration needed.
+
+/// The type of a GuideItem (what kind of content it represents)
+enum GuideType: String {
+    case warmup = "warmup"
+    case cooldown = "cooldown"
+}
+
+/// The category used for filtering MuscleGroupGuide entries
+enum GuideCategory: String {
+    case warmup = "warmup"
+    case stretch = "stretch"
+}
+
 @Model
 class GuideItem {
     var id: UUID
     var name: String
-    var type: String // "warmup" or "cooldown" (or "stretch")
+    var type: String // Use GuideType.rawValue
     var duration: String
     var instruction: String
     var icon: String
     var isCustom: Bool
     
-    init(name: String, type: String, duration: String, instruction: String, icon: String, isCustom: Bool = false) {
+    init(name: String, type: GuideType, duration: String, instruction: String, icon: String, isCustom: Bool = false) {
         self.id = UUID()
         self.name = name
-        self.type = type
+        self.type = type.rawValue
         self.duration = duration
         self.instruction = instruction
         self.icon = icon
@@ -52,14 +68,14 @@ class GuideItem {
 @Model
 class MuscleGroupGuide {
     var displayOrder: Int
-    var category: String // "warmup" or "stretch" - helps filtering
+    var category: String // Use GuideCategory.rawValue
     
     var guideItem: GuideItem?
     var muscleGroup: MuscleGroup?
     
-    init(displayOrder: Int, category: String, guideItem: GuideItem) {
+    init(displayOrder: Int, category: GuideCategory, guideItem: GuideItem) {
         self.displayOrder = displayOrder
-        self.category = category
+        self.category = category.rawValue
         self.guideItem = guideItem
     }
 }

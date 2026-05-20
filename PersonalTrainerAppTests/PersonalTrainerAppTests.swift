@@ -228,10 +228,10 @@ struct ExerciseDetailViewModelTests {
         
         // 5. Test Suggested Volume
         // Last volume (yesterday) = 1000
-        // Improvement = 2% (default) -> 1020
+        // Improvement = 3% (default) -> 1030
         #expect(vm.lastTrainingVolume == 1000)
-        // Default improvement is 2.0
-        #expect(vm.suggestedVolume == 1020)
+        // Default improvement is 3.0
+        #expect(vm.suggestedVolume == 1030)
         
         // 6. Test Delete Set
         let setToDelete = exercise.sets.first(where: { $0.reps == 5 })! // The one we added first
