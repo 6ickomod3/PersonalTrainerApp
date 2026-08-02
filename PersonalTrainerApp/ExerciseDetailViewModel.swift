@@ -83,25 +83,27 @@ class ExerciseDetailViewModel {
     
     func addSet() {
         let newSet = WorkoutSet(reps: reps, weight: weight)
-        
+
         // 1. Add to relationship
         exercise.sets.append(newSet)
-        
+
         // 2. Explicit insert and save (Fix for validation error)
         modelContext.insert(newSet)
+        exercise.refreshCachedLastLogDate()
         modelContext.safeSave()
     }
-    
+
     func deleteSet(_ set: WorkoutSet) {
         print("Deleting set with ID: \(set.id)")
-        
+
         // 1. Manually remove from relationship first (Fix for "Delete All" bug / UI sync)
         if let index = exercise.sets.firstIndex(where: { $0.id == set.id }) {
             exercise.sets.remove(at: index)
         }
-        
+
         // 2. Delete from context
         modelContext.delete(set)
+        exercise.refreshCachedLastLogDate()
         modelContext.safeSave()
     }
     

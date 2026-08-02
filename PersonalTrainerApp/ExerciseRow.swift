@@ -5,10 +5,9 @@ struct ExerciseRow: View {
     let exercise: Exercise
     let onRename: () -> Void
     let onDelete: () -> Void
-    @Environment(TimerState.self) var timerState
-    
+
     var body: some View {
-        NavigationLink(destination: ExerciseDetailView(exercise: exercise).environment(timerState)) {
+        NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
             HStack {
                 // Leading Status Icon (Read-only)
                 Image(systemName: isLoggedToday ? "checkmark.circle.fill" : "circle")

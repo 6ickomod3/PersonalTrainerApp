@@ -6,15 +6,19 @@ A comprehensive iOS fitness companion for tracking workouts, managing exercises,
 ## Features
 
 - 📋 **Unified Dashboard** - All-in-one view with Strength, Cardio, and Calendar tracking
-- 💪 **comprehensive Guides** - Workouts now include Warm-up and Cool-down sections with detailed instructions
+- 👋 **Personalized Greeting** - Time-aware, daily-rotating welcome that addresses you by name
+- 💪 **Comprehensive Guides** - Workouts include Warm-up and Cool-down sections with detailed instructions
+- 🃏 **Rich Muscle Group Cards** - Per-group icon, exercise count, and "last trained" indicator at a glance
 - 🏃 **Cardio Logging** - Track runs, cycles, and more with daily filtering
-- 📅 **Activity Calendar** - Visual monthly history with color-coded workout dots
+- 📅 **Activity Calendar** - Visual monthly history with color-coded workout dots, localized weekday header
 - 🗑️ **Smart Data Management** - Configurable data retention (1-30 days) with automatic cleanup
-- ⏱️ **Rest Timer & Live Activities** - Built-in countdown timer with Lock Screen support, Dynamic Island integration, and background alarms
+- ⏱️ **Rest Timer with Progress Ring** - Circular countdown ring, primary/secondary button hierarchy, haptic feedback, Lock Screen + Dynamic Island Live Activities, background alarms
+- 👆 **Swipe-to-Delete** - Native swipe actions for workout sets
 - ✏️ **Native Edit Mode** - Safe and intuitive management for adding, deleting, renaming, and reordering items
-- 🎨 **Glass Morphism Design** - Modern frosted glass aesthetic for timer matching iOS 15+ design language
+- 🎨 **Refined Earthy Palette** - Categorical colors per workout phase + functional colors for actions, data, and state
+- ♿️ **Accessibility Built-in** - VoiceOver labels on every icon button, 44pt tap targets, haptic confirmation on key actions
 - 💾 **Data Persistence** - Reliable local storage using SwiftData
-- 🔄 **Smart Migrations** - Automatic data handling for app updates
+- 🔄 **Smart Migrations** - Automatic, additive data handling for app updates
 - 📱 **Professional App Icon** - Custom icon with auto-generated sizes for all devices
 
 ## Getting Started
@@ -130,7 +134,7 @@ open PersonalTrainerApp.xcodeproj
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed version history and upcoming features.
 
-**Current Version:** v1.5.0 (December 22, 2025) - Safety & Insights 🛡️
+**Current Version:** v1.6.0 (May 20, 2026) - Polish & Personalization 🎨
 
 ## Future Roadmap
 

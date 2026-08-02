@@ -28,6 +28,7 @@ struct CardioSectionView: View {
                         .font(.title2)
                         .foregroundStyle(Theme.cardio)
                 }
+                .accessibilityLabel("Log cardio")
             }
             .padding(.horizontal)
             
@@ -41,24 +42,14 @@ struct CardioSectionView: View {
                     )
                 
                 if todaysLogs.isEmpty {
-                    VStack(spacing: 8) {
-                        Image(systemName: "heart.text.square")
-                            .font(.largeTitle)
-                            .foregroundStyle(.secondary)
-                        Text("No cardio logs today")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        
-                        Button("Log Run") {
-                            addQuickLog(type: "Run", minutes: 30)
-                        }
-                        .font(.caption.bold())
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Capsule().fill(Theme.cardio.opacity(0.2)))
-                        .foregroundStyle(Theme.cardio)
-                    }
-                    .padding()
+                    EmptyStateView(
+                        systemImage: "heart.text.square",
+                        title: "No cardio logs today",
+                        actionLabel: "Log Run",
+                        actionTint: Theme.cardio,
+                        action: { addQuickLog(type: "Run", minutes: 30) }
+                    )
+                    .padding(.horizontal)
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {

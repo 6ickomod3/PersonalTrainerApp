@@ -3,23 +3,21 @@ import SwiftData
 
 struct ExerciseDetailView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(TimerState.self) var timerState
     @Query private var appSettings: [AppSettings]
-    
+
     // We keep exercise here to initialize the VM
     let exercise: Exercise
-    
+
     // ViewModel is optional because it depends on modelContext which is only available in body/onAppear
     @State private var viewModel: ExerciseDetailViewModel?
     @State private var showingSettingsSheet = false
     @State private var setToDelete: WorkoutSet?
-    
+    @State private var addSetCount = 0
+
     var settings: AppSettings {
         appSettings.first ?? AppSettings()
     }
-    
-    var spacerHeight: CGFloat { timerState.spacerHeight }
-    
+
     init(exercise: Exercise) {
         self.exercise = exercise
     }
@@ -54,7 +52,7 @@ struct ExerciseDetailView: View {
                                                 .foregroundStyle(.secondary)
                                             Text(String(format: "%.0f", suggested) + " lbs")
                                                 .font(.headline)
-                                                .foregroundStyle(Theme.highlight)
+                                                .foregroundStyle(Theme.dataHighlight)
                                         }
                                         Spacer()
                                     }
@@ -78,18 +76,6 @@ struct ExerciseDetailView: View {
                         }
                         
                         Section(header: Text("Log a set")) {
-                            // Add Set Button at the top
-                            Button(action: {
-                                vm.addSet()
-                            }) {
-                                Text("Add Set")
-                                    .frame(maxWidth: .infinity)
-                                    .bold()
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .listRowInsets(EdgeInsets()) // Make button full width
-                            .padding()
-                            
                             HStack(spacing: 0) {
                                 // Left Column: Reps
                                 VStack(spacing: 5) {
@@ -104,9 +90,9 @@ struct ExerciseDetailView: View {
                                     .frame(height: 120)
                                 }
                                 .frame(maxWidth: .infinity)
-                                
+
                                 Divider()
-                                
+
                                 // Right Column: Weight
                                 VStack(spacing: 5) {
                                     Text("lbs: \(vm.weight, specifier: "%.1f")")
@@ -121,95 +107,84 @@ struct ExerciseDetailView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                             }
+
+                            Button(action: {
+                                vm.addSet()
+                                addSetCount += 1
+                            }) {
+                                Text("Add Set")
+                                    .frame(maxWidth: .infinity)
+                                    .bold()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .listRowInsets(EdgeInsets())
+                            .padding()
                         }
                         
-                        Section(header: Text("History")) {
-                            if exercise.sets.isEmpty {
+                        if vm.setsByDate.isEmpty {
+                            Section(header: Text("History")) {
                                 Text("No sets logged yet.")
                                     .foregroundStyle(.secondary)
-                            } else {
-                                ForEach(vm.setsByDate, id: \.date) { dayData in
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        // Daily header with total volume
+                            }
+                        } else {
+                            ForEach(vm.setsByDate, id: \.date) { dayData in
+                                Section {
+                                    ForEach(dayData.sets, id: \.id) { set in
                                         HStack {
                                             VStack(alignment: .leading, spacing: 4) {
-                                                Text(dayData.date, style: .date)
-                                                    .font(.headline)
-                                                    .foregroundStyle(.primary)
-                                                Text("\(dayData.sets.count) set\(dayData.sets.count == 1 ? "" : "s")")
-                                                    .font(.caption)
+                                                HStack(spacing: 8) {
+                                                    Text("\(set.reps) × \(set.weight, specifier: "%.1f")")
+                                                        .font(.body)
+                                                        .fontWeight(.medium)
+                                                    Text("= \(set.volume, specifier: "%.0f") lbs")
+                                                        .font(.caption)
+                                                        .foregroundStyle(.secondary)
+                                                }
+                                                Text(set.date, style: .time)
+                                                    .font(.caption2)
                                                     .foregroundStyle(.secondary)
                                             }
                                             Spacer()
-                                            VStack(alignment: .trailing, spacing: 4) {
-                                                Text("Total Volume")
-                                                    .font(.caption)
-                                                    .foregroundStyle(.secondary)
-                                                Text("\(dayData.totalVolume, specifier: "%.0f") lbs")
-                                                    .font(.headline)
-                                                    .foregroundStyle(Theme.highlight)
+                                        }
+                                        .contentShape(Rectangle())
+                                        .onTapGesture {
+                                            withAnimation {
+                                                vm.prefillFromSet(set)
                                             }
                                         }
-                                        .padding(.bottom, 4)
-                                        
-                                        Divider()
-                                        
-                                        // Individual sets for this day
-                                        VStack(alignment: .leading, spacing: 10) {
-                                            ForEach(dayData.sets, id: \.id) { set in
-                                                HStack {
-                                                    VStack(alignment: .leading, spacing: 4) {
-                                                        HStack(spacing: 8) {
-                                                            Text("\(set.reps) × \(set.weight, specifier: "%.1f")")
-                                                                .font(.body)
-                                                                .fontWeight(.medium)
-                                                            Text("= \(set.volume, specifier: "%.0f") lbs")
-                                                                .font(.caption)
-                                                                .foregroundStyle(.secondary)
-                                                        }
-                                                        Text(set.date, style: .time)
-                                                            .font(.caption2)
-                                                            .foregroundStyle(.secondary)
-                                                    }
-                                                    Spacer()
-                                                    Button(action: {
-                                                        setToDelete = set
-                                                    }) {
-                                                        Image(systemName: "trash.fill")
-                                                            .font(.caption)
-                                                            .foregroundStyle(.red)
-                                                    }
-                                                    .buttonStyle(.borderless)
-                                                }
-                                                .padding(.vertical, 6)
-                                                .contentShape(Rectangle()) // Make entire row tappable
-                                                .onTapGesture {
-                                                    withAnimation {
-                                                        vm.prefillFromSet(set)
-                                                    }
-                                                }
-                                                
-                                                if set.id != dayData.sets.last?.id {
-                                                    Divider()
-                                                        .padding(.vertical, 2)
-                                                }
+                                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                            Button(role: .destructive) {
+                                                setToDelete = set
+                                            } label: {
+                                                Label("Delete", systemImage: "trash")
                                             }
                                         }
-                                        .padding(.vertical, 8)
                                     }
-                                    .padding(12)
-                                    .background(Theme.innerCardBackground)
-                                    .cornerRadius(Theme.innerRadius)
+                                } header: {
+                                    HStack(alignment: .firstTextBaseline) {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(dayData.date, style: .date)
+                                                .font(.subheadline.bold())
+                                                .foregroundStyle(.primary)
+                                            Text("\(dayData.sets.count) set\(dayData.sets.count == 1 ? "" : "s")")
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        Spacer()
+                                        VStack(alignment: .trailing, spacing: 2) {
+                                            Text("Total Volume")
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                            Text("\(dayData.totalVolume, specifier: "%.0f") lbs")
+                                                .font(.subheadline.bold())
+                                                .foregroundStyle(Theme.dataHighlight)
+                                        }
+                                    }
+                                    .textCase(nil)
                                 }
                             }
                         }
                         
-                        // Dynamic spacer to push scroll endpoint to timer
-                        Color.clear
-                            .frame(height: spacerHeight)
-                            .listRowInsets(EdgeInsets())
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
                     }
                 }
                 .navigationTitle(exercise.name)
@@ -219,16 +194,19 @@ struct ExerciseDetailView: View {
                             NavigationLink(destination: ExerciseInstructionView(exercise: exercise)) {
                                 Image(systemName: "info.circle")
                             }
-                            
+                            .accessibilityLabel("Exercise instructions")
+
                             Button(action: { showingSettingsSheet = true }) {
                                 Label("Settings", systemImage: "gear")
                             }
+                            .accessibilityLabel("Exercise settings")
                         }
                     }
                 }
                 .onAppear {
                     vm.cleanupOldSets(maxDays: settings.maxStorageDays)
                 }
+                .sensoryFeedback(.success, trigger: addSetCount)
                 .sheet(isPresented: $showingSettingsSheet) {
                     ExerciseSettingsSheet(isPresented: $showingSettingsSheet, exercise: exercise)
                 }

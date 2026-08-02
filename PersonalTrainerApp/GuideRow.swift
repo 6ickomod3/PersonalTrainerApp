@@ -6,8 +6,7 @@ struct GuideRow: View {
     let color: Color
     let muscleGroup: String
     let section: String
-    @Environment(TimerState.self) var timerState
-    
+
     @State private var isChecked = false
     
     private var storageKey: String {
@@ -25,7 +24,7 @@ struct GuideRow: View {
             .buttonStyle(.plain)
             
             // Content
-            NavigationLink(destination: GuideDetailView(item: item, color: color).environment(timerState)) {
+            NavigationLink(destination: GuideDetailView(item: item, color: color)) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.name)
                         .font(.body.weight(.medium))

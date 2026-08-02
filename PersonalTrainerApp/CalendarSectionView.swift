@@ -75,11 +75,11 @@ struct CalendarSectionView: View {
             VStack(spacing: 0) {
                 CalendarGrid(currentMonth: $currentMonth, selectedDate: $selectedDate, activityMap: daysWithWorkouts)
                     .padding()
-                
+
                 if let date = selectedDate {
                     Divider()
                         .padding(.horizontal)
-                    
+
                     DailyLogView(date: date, sets: sets, cardioLogs: cardioLogs)
                         // Simple appear without "falling" animation
                         .transition(.opacity)
@@ -90,6 +90,7 @@ struct CalendarSectionView: View {
         }
         // Keep the layout animation for smooth resizing, but it won't be "falling"
         .animation(.spring(response: 0.3, dampingFraction: 1), value: selectedDate)
+        .sensoryFeedback(.selection, trigger: selectedDate)
     }
 }
 
@@ -98,7 +99,12 @@ struct CalendarGrid: View {
     @Binding var selectedDate: Date?
     let activityMap: [Date: Set<String>]
     
-    let daysOfWeek = ["S", "M", "T", "W", "T", "F", "S"]
+    var daysOfWeek: [String] {
+        let calendar = Calendar.current
+        let symbols = calendar.veryShortStandaloneWeekdaySymbols
+        let firstWeekday = calendar.firstWeekday - 1
+        return Array(symbols[firstWeekday...] + symbols[..<firstWeekday])
+    }
     let columns = Array(repeating: GridItem(.flexible()), count: 7)
     
     var body: some View {
@@ -112,9 +118,11 @@ struct CalendarGrid: View {
                     Button(action: { changeMonth(by: -1) }) {
                         Image(systemName: "chevron.left")
                     }
+                    .accessibilityLabel("Previous month")
                     Button(action: { changeMonth(by: 1) }) {
                         Image(systemName: "chevron.right")
                     }
+                    .accessibilityLabel("Next month")
                 }
                 .foregroundStyle(.secondary)
             }
@@ -122,7 +130,7 @@ struct CalendarGrid: View {
             
             // Days Header
             LazyVGrid(columns: columns) {
-                ForEach(daysOfWeek, id: \.self) { day in
+                ForEach(Array(daysOfWeek.enumerated()), id: \.offset) { _, day in
                     Text(day)
                         .font(.caption2)
                         .fontWeight(.bold)
@@ -188,39 +196,53 @@ struct DayCell: View {
     let date: Date
     let activities: Set<String>?
     let isSelected: Bool
-    
+
     var isToday: Bool {
         Calendar.current.isDateInToday(date)
     }
-    
+
+    var dayNumberForeground: Color {
+        if isToday { return .white }
+        if isSelected { return .white }
+        return .primary
+    }
+
+    @ViewBuilder
+    var dayNumberBackground: some View {
+        if isToday {
+            Circle().fill(Theme.accent)
+        } else if isSelected {
+            Circle().fill(Color.primary.opacity(0.6))
+        }
+    }
+
+    var strengthDotColor: Color {
+        (isToday || isSelected) ? .white : Theme.accent
+    }
+
+    var cardioDotColor: Color {
+        (isToday || isSelected) ? .white : Theme.cardio
+    }
+
     var body: some View {
-        VStack {
+        VStack(spacing: 3) {
             Text("\(Calendar.current.component(.day, from: date))")
                 .font(.caption)
-                .foregroundStyle(isToday ? .white : (isSelected ? .white : .primary))
+                .foregroundStyle(dayNumberForeground)
                 .frame(width: 30, height: 30)
-                .background(
-                    Group {
-                        if isToday {
-                            Circle().fill(Theme.highlight)
-                        } else if isSelected {
-                            Circle().fill(Color.primary.opacity(0.8))
-                        }
+                .background(dayNumberBackground)
+
+            HStack(spacing: 2) {
+                if let acts = activities {
+                    if acts.contains("strength") {
+                        Circle().fill(strengthDotColor).frame(width: 4, height: 4)
                     }
-                )
-                .overlay(
-                    HStack(spacing: 2) {
-                        if !isSelected, let acts = activities {
-                            if acts.contains("strength") {
-                                Circle().fill(Theme.accent).frame(width: 4, height: 4)
-                            }
-                            if acts.contains("cardio") {
-                                Circle().fill(Theme.cardio).frame(width: 4, height: 4)
-                            }
-                        }
+                    if acts.contains("cardio") {
+                        Circle().fill(cardioDotColor).frame(width: 4, height: 4)
                     }
-                    .offset(y: 12)
-                )
+                }
+            }
+            .frame(height: 4)
         }
     }
 }
@@ -314,7 +336,7 @@ struct DailyLogView: View {
                                 Spacer()
                                 Text(formatDuration(log.duration))
                                     .font(.caption)
-                                    .networkstyle()
+                                    .foregroundStyle(.secondary)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(8)
@@ -337,8 +359,3 @@ struct DailyLogView: View {
     }
 }
 
-extension View {
-    func networkstyle() -> some View {
-        self.foregroundStyle(.secondary)
-    }
-}

@@ -5,6 +5,84 @@ All notable changes to Personal Trainer App will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-05-20
+
+### Major Release - Polish & Personalization 🎨
+
+This release focuses on a deeper visual refresh, personalization, and a more accessible app. The color system was restructured into categorical and functional tiers so every section feels distinct, the rest timer gained a circular progress ring and a clear primary-action hierarchy, and the dashboard now greets you by name with a time-aware, daily-rotating message. Existing data is preserved through additive, lightweight migrations.
+
+### Added
+- **Personalized Time-Aware Greeting**
+  - New `Greeter` rotates through 24 phrases across four time buckets (morning / afternoon / evening / late-night).
+  - Optional **Name** field in Settings — when set, every greeting addresses the user.
+  - Greeting is deterministic per-day so it stays consistent during a session but feels fresh day-to-day.
+- **Richer Muscle Group Cards**
+  - SF Symbol per group (chest, back, leg, shoulder, arm, …).
+  - "N exercises" chip + "Trained today / yesterday / Nd ago / Nw ago / 1mo+ ago" subline.
+  - Cached `Exercise.lastLogDate` for O(1) lookups; backfilled from existing sets on first launch.
+- **Reusable EmptyStateView**
+  - Icon + title + optional subtitle + optional capsule action with custom tint.
+  - Applied across Cardio (with quick "Log Run"), ExerciseList (exercises / warm-ups / cool-downs), and Strength dashboard.
+- **Rest Timer Visual Upgrade**
+  - **Circular progress ring** around the countdown — see remaining time at a glance without doing arithmetic.
+  - **Primary-action hierarchy** — Start/Pause is now a filled accent capsule; Reset and ±15s are tinted-text only.
+  - **Haptic on Start/Pause** — every toggle confirms with `.sensoryFeedback(.success)`.
+  - **Tappable chevron** in the expanded header — collapse on tap (drag still works).
+  - **Minimized progress strip** — a thin slate-blue bar at the top edge shrinks as the countdown runs, so you can still see progress in the collapsed state.
+  - Countdown and ring share the same color for a more cohesive feel.
+- **Improved Settings Sheet**
+  - New **Profile** section with a name field (auto-capitalizes words).
+  - `Stepper` controls for timer duration (15-second steps, `M:SS` display) and storage retention (with singular/plural).
+  - Merged "Reset Settings to Defaults" into the **Danger Zone** alongside "Reset All App Data".
+
+### Changed
+- **Color System Overhaul**
+  - Palette split into two tiers — **categorical** (`accent`, `cardio`, `warmup`, `cooldown`) for content domains and **functional** (`primaryAction`, `dataHighlight`, `timerActive`, `success`, `destructive`, `muted`, `inactive`) for UI semantics.
+  - Re-tuned for distinctness at a glance: cardio shifted from olive sage to **deep forest green**, warm-up from amber clay to **golden saffron**, cool-down to **deeper teal**, success from sage to **vivid green** (no longer blurs with cardio).
+  - Removed dead `secondary` alias and the overloaded `highlight` token; volume / chart / timer states now use their own dedicated tokens.
+- **Calendar Day Cell**
+  - Activity dots remain visible when a day is selected (recolored to white).
+  - Today now uses the brand accent color; selected uses a neutral primary tint (semantic swap).
+  - Dots moved into the cell's `VStack` so they no longer clip on smaller screens.
+  - Weekday header is now localized via `Calendar.veryShortStandaloneWeekdaySymbols` and rotated by `firstWeekday` (previously hardcoded English / Sunday-first).
+- **Exercise Detail History**
+  - Each day is now its own `Form` section with a date + total-volume header.
+  - Per-row trash button replaced with native **swipe-to-delete** (`.swipeActions`).
+  - **Add Set** button moved **below** the reps/weight pickers (configure first, then add).
+- **Timer Controls**
+  - `–15s` and `+15s` are now enabled while the countdown is running (previously disabled).
+  - ±15s tap targets bumped to 44×44pt per Apple HIG.
+- **Layout & Code Health**
+  - Floating timer now uses `.safeAreaInset(edge: .bottom)` — replaces the manual `ZStack` + spacer-height plumbing.
+  - Deprecated `TimerState` shared height publisher (reference file kept; safe to remove from Xcode project navigator).
+
+### Accessibility
+- Accessibility labels added to every icon-only button (cardio "+", calendar chevrons, exercise info / settings / trash, list "+" affordances, timer ±15s, etc.).
+- Sensory feedback on key actions: Add Set, Jump Back In, calendar day-select, timer Start/Pause.
+
+### Fixed
+- Removed a misnamed leftover `.networkstyle()` extension in `CalendarSectionView`.
+- Removed the developer's hardcoded name from the dashboard greeting.
+- `lastLoggedExercise` lookup is now O(n) via the cached date (was O(n × m) sorting all sets).
+
+### Technical Details
+- **Schema (additive, lightweight migration)**
+  - `AppSettings.userName: String = ""` — existing rows auto-populate with empty string.
+  - `Exercise.cachedLastLogDate: Date?` — backfilled from existing sets in `DataMigration.performMigrations`.
+- **New types**
+  - `Greeter` — time-bucketed, name-interpolating, deterministic-by-day greeting generator.
+  - `EmptyStateView` — reusable empty-state primitive.
+  - `TimerManager.progress: Double` — clamped 0–1 fraction used by the ring and progress strip.
+- **Removed**
+  - `Theme.secondary` alias (was a dead one-line alias of `success`).
+  - `Theme.highlight` token (replaced by `dataHighlight` and `timerActive`).
+  - `TimerState`'s height-publishing API (replaced by `safeAreaInset`).
+
+### Known Issues
+- A small amount of text bleed-through is still visible near the home-indicator zone behind the timer when scrolling. Tracked for a follow-up patch.
+
+---
+
 ## [1.5.0] - 2025-12-22
 
 ### Major Release - Safety & Insights 🛡️

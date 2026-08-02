@@ -66,7 +66,7 @@ struct GuidePoolSheet: View {
                                         .foregroundStyle(Theme.success)
                                 } else {
                                     Image(systemName: "plus.circle")
-                                        .foregroundStyle(Theme.highlight)
+                                        .foregroundStyle(Theme.primaryAction)
                                 }
                             }
                         }

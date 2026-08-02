@@ -104,7 +104,11 @@ class Exercise {
     
     // List of instruction pointers
     var instructions: [String] = []
-    
+
+    /// Cached most-recent set date. Updated by ExerciseDetailViewModel on add/delete/cleanup
+    /// and backfilled by DataMigration for stores written before this field existed.
+    var cachedLastLogDate: Date?
+
     @Relationship(deleteRule: .cascade, inverse: \WorkoutSet.exercise) var sets: [WorkoutSet] = []
     
     init(name: String, muscleGroupName: String, defaultReps: Int = 10, defaultWeight: Double = 20.0, videoUrl: String? = nil, instructions: [String] = []) {
@@ -149,12 +153,20 @@ class Exercise {
         }
         
         if !setsToDelete.isEmpty {
+            refreshCachedLastLogDate()
             try? modelContext.save()
         }
     }
-    /// Helper to get the most recent set date for sorting
+    /// Most recent set date. Reads from cache for O(1); falls back to computing
+    /// from `sets` when the cache is nil (e.g. legacy stores pre-backfill).
     var lastLogDate: Date? {
-        sets.max(by: { $0.date < $1.date })?.date
+        cachedLastLogDate ?? sets.max(by: { $0.date < $1.date })?.date
+    }
+
+    /// Recompute and persist `cachedLastLogDate` from the current `sets` array.
+    /// Call this whenever sets are added, deleted, or cleaned up.
+    func refreshCachedLastLogDate() {
+        cachedLastLogDate = sets.max(by: { $0.date < $1.date })?.date
     }
     
     // MARK: - Volume Helpers

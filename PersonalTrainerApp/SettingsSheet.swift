@@ -5,52 +5,86 @@ struct SettingsSheet: View {
     @Binding var isPresented: Bool
     @Bindable var settings: AppSettings
     @Environment(\.modelContext) private var modelContext
-    
+
+    @State private var showingResetAlert = false
+
+    private var formattedDuration: String {
+        let m = settings.defaultTimerDuration / 60
+        let s = settings.defaultTimerDuration % 60
+        return String(format: "%d:%02d", m, s)
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("Rest Timer")) {
+                Section {
                     HStack {
-                        Text("Default Duration (seconds)")
+                        Text("Name")
                         Spacer()
-                        TextField("Seconds", value: $settings.defaultTimerDuration, format: .number)
-                            .keyboardType(.numberPad)
+                        TextField("Optional", text: $settings.userName)
                             .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
+                            .textInputAutocapitalization(.words)
+                            .submitLabel(.done)
                     }
-                    
-                    Text("Set the default countdown duration. Common values: 60 (1:00), 90 (1:30), 120 (2:00)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                } header: {
+                    Text("Profile")
+                } footer: {
+                    Text("Used in the dashboard greeting. Leave blank to skip.")
                 }
-                
-                Section(header: Text("Data Storage")) {
-                    HStack {
-                        Text("Keep Last N Days of Data")
-                        Spacer()
-                        TextField("Days", value: $settings.maxStorageDays, format: .number)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 60)
+
+                Section {
+                    Stepper(
+                        value: $settings.defaultTimerDuration,
+                        in: 15...600,
+                        step: 15
+                    ) {
+                        HStack {
+                            Text("Default Duration")
+                            Spacer()
+                            Text(formattedDuration)
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
                     }
-                    
-                    Text("Older workout logs will be automatically deleted.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                } header: {
+                    Text("Rest Timer")
+                } footer: {
+                    Text("Countdown shown when you tap Start. Adjusts in 15-second steps.")
                 }
-                
-                Section(footer: Text("These settings apply globally to the app.")) {
+
+                Section {
+                    Stepper(
+                        value: $settings.maxStorageDays,
+                        in: 1...30,
+                        step: 1
+                    ) {
+                        HStack {
+                            Text("Keep Last")
+                            Spacer()
+                            Text("\(settings.maxStorageDays) day\(settings.maxStorageDays == 1 ? "" : "s")")
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
+                    }
+                } header: {
+                    Text("Data Storage")
+                } footer: {
+                    Text("Older workout logs are automatically deleted.")
+                }
+
+                Section {
                     Button("Reset Settings to Defaults") {
+                        settings.userName = ""
                         settings.maxStorageDays = 4
                         settings.defaultTimerDuration = 90
                     }
                     .foregroundStyle(Theme.accent)
-                }
-                
-                Section(header: Text("Danger Zone")) {
+
                     Button("Reset All App Data", role: .destructive) {
                         showingResetAlert = true
                     }
+                } header: {
+                    Text("Danger Zone")
                 }
             }
             .navigationTitle("App Settings")
@@ -58,14 +92,14 @@ struct SettingsSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") {
-                        // Clamp values to safe ranges before saving
-                        settings.defaultTimerDuration = max(10, min(600, settings.defaultTimerDuration))
-                        settings.maxStorageDays = max(1, min(365, settings.maxStorageDays))
-                        
-                        // Ensure changes are saved
+                        // Clamp values to safe ranges before saving (defensive — Stepper already enforces)
+                        settings.defaultTimerDuration = max(15, min(600, settings.defaultTimerDuration))
+                        settings.maxStorageDays = max(1, min(30, settings.maxStorageDays))
+                        settings.userName = settings.userName.trimmingCharacters(in: .whitespacesAndNewlines)
                         modelContext.safeSave()
                         isPresented = false
                     }
+                    .bold()
                 }
             }
             .alert("Reset All Data?", isPresented: $showingResetAlert) {
@@ -79,17 +113,14 @@ struct SettingsSheet: View {
             }
         }
     }
-    
-    @State private var showingResetAlert = false
-    
+
     private func resetData() {
         do {
             try modelContext.delete(model: Exercise.self)
             try modelContext.delete(model: MuscleGroup.self)
             try modelContext.delete(model: CardioLog.self)
             try modelContext.delete(model: WorkoutSet.self)
-            
-            // Seed defaults
+
             SeedHelper.seedMuscleGroups(context: modelContext)
             SeedHelper.seedExercises(context: modelContext)
         } catch {

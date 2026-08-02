@@ -4,35 +4,50 @@ import SwiftUI
 // Earthy, modern aesthetic with consistent tokens across all views.
 
 enum Theme {
-    
-    // MARK: - Core Palette (Earthy Tones)
-    
-    /// Primary accent — warm terracotta for strength/exercises
-    static let accent = Color(red: 0.78, green: 0.49, blue: 0.36)          // #C67C5B
-    
-    /// Secondary accent — sage green for cardio/success
-    static let secondary = Color(red: 0.48, green: 0.62, blue: 0.49)       // #7A9E7E
-    
-    /// Warm-up tint — amber clay
-    static let warmup = Color(red: 0.83, green: 0.57, blue: 0.37)          // #D4915E
-    
-    /// Cool-down tint — dusty teal
-    static let cooldown = Color(red: 0.42, green: 0.62, blue: 0.64)        // #6B9EA3
-    
-    /// Cardio tint — olive sage
-    static let cardio = Color(red: 0.56, green: 0.66, blue: 0.47)          // #8FA878
 
-    /// Chart/volume highlight — muted slate blue
-    static let highlight = Color(red: 0.45, green: 0.55, blue: 0.65)       // #738CA6
-    
-    /// Subtle text/icons on earthy backgrounds
+    // MARK: - Categorical Colors (content domain — never use for chrome)
+
+    /// Strength category — warm terracotta. Also brand/app tint.
+    static let accent = Color(red: 0.78, green: 0.49, blue: 0.36)          // #C67C5B
+
+    /// Cardio category — deep forest green. Pushed away from sage so it
+    /// reads distinctly from the success checkmark color.
+    static let cardio = Color(red: 0.31, green: 0.55, blue: 0.40)          // #4F8C66
+
+    /// Warm-up category — golden saffron. Yellower/more saturated so it
+    /// no longer blurs against the terracotta accent.
+    static let warmup = Color(red: 0.91, green: 0.65, blue: 0.21)          // #E8A636
+
+    /// Cool-down category — deeper teal. Pushed away from gray so it reads
+    /// as a clear category color, not a muted UI color.
+    static let cooldown = Color(red: 0.20, green: 0.55, blue: 0.62)        // #338C9E
+
+    // MARK: - Functional Colors (UI semantics — never use as a category)
+
+    /// Primary action chrome. Currently aliased to `accent` for brand
+    /// consistency, but kept as a separate token so action buttons can
+    /// diverge from the Strength category without a sweep.
+    static let primaryAction = accent
+
+    /// Data emphasis — volume totals, chart series, numeric highlights.
+    /// The only cool color in the palette; reserve for data, not state.
+    static let dataHighlight = Color(red: 0.45, green: 0.55, blue: 0.65)   // #738CA6
+
+    /// Timer active-state indicator (countdown text while running).
+    /// Same hue as dataHighlight today, but a distinct token so the timer
+    /// can evolve without touching chart code.
+    static let timerActive = dataHighlight
+
+    /// Completion checkmarks (logged today). Vivid green, distinct from cardio.
+    static let success = Color(red: 0.20, green: 0.66, blue: 0.33)         // #33A854
+
+    /// Destructive action chrome. Use sparingly — most destructive buttons
+    /// use SwiftUI's `role: .destructive` which already gets system red.
+    static let destructive = Color.red
+
+    /// Subtle text/icons on earthy backgrounds — chevrons, dividers.
     static let muted = Color(red: 0.60, green: 0.56, blue: 0.52)           // #998F85
-    
-    // MARK: - Semantic Colors
-    
-    /// Completion checkmarks
-    static let success = secondary
-    
+
     /// Unchecked / inactive state
     static let inactive = Color.gray.opacity(0.3)
     
@@ -112,5 +127,50 @@ extension View {
     /// Applies the standard earthy card style (material background + subtle stroke)
     func themeCard(radius: CGFloat = Theme.cardRadius) -> some View {
         modifier(ThemeCard(radius: radius))
+    }
+}
+
+// MARK: - EmptyStateView
+
+/// Reusable empty-state for sections with no content yet.
+/// Icon + title + optional subtitle + optional capsule action.
+struct EmptyStateView: View {
+    let systemImage: String
+    let title: String
+    var subtitle: String? = nil
+    var actionLabel: String? = nil
+    var actionTint: Color = Theme.accent
+    var action: (() -> Void)? = nil
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.title)
+                .foregroundStyle(.secondary)
+
+            Text(title)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.center)
+
+            if let subtitle {
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            if let actionLabel, let action {
+                Button(actionLabel, action: action)
+                    .font(.caption.bold())
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(actionTint.opacity(0.2)))
+                    .foregroundStyle(actionTint)
+                    .padding(.top, 2)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
     }
 }

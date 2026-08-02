@@ -58,14 +58,14 @@ struct ExerciseAnalyticsView: View {
                                 x: .value("Index", xValue),
                                 y: .value("Volume", stat.totalVolume)
                             )
-                            .foregroundStyle(Theme.highlight.gradient)
+                            .foregroundStyle(Theme.dataHighlight.gradient)
                             .interpolationMethod(.catmullRom)
                             
                             AreaMark(
                                 x: .value("Index", xValue),
                                 y: .value("Volume", stat.totalVolume)
                             )
-                            .foregroundStyle(Theme.highlight.opacity(0.1).gradient)
+                            .foregroundStyle(Theme.dataHighlight.opacity(0.1).gradient)
                             .interpolationMethod(.catmullRom)
                         }
                     }

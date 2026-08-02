@@ -10,9 +10,7 @@ struct ExerciseListView: View {
     @State private var showingAddExerciseSheet = false
     @State private var showingPoolSheet = false
     @State private var poolCategory: GuideCategory = .warmup
-    
-    @Environment(TimerState.self) var timerState
-    
+
     @State private var newlyCreatedExercise: Exercise?
     @State private var isNavigatingToNew = false
     
@@ -73,19 +71,12 @@ struct ExerciseListView: View {
             warmupSection
             exercisesSection
             coolDownSection
-            
-            // Spacer for Timer
-            Color.clear.frame(height: 80).listRowBackground(Color.clear)
         }
         .listStyle(.insetGrouped)
         .navigationTitle(muscleGroup.name)
-        .toolbar {
-             // Toolbar items if any
-        }
         .navigationDestination(isPresented: $isNavigatingToNew) {
             if let newExercise = newlyCreatedExercise {
                 ExerciseDetailView(exercise: newExercise)
-                    .environment(timerState)
             }
         }
         .alert("Rename Exercise", isPresented: Binding(
@@ -152,9 +143,12 @@ struct ExerciseListView: View {
         Section {
             DisclosureGroup(isExpanded: $isWarmupExpanded) {
                 if warmups.isEmpty {
-                    Text("No warm-ups added.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    EmptyStateView(
+                        systemImage: "flame",
+                        title: "No warm-ups added",
+                        subtitle: "Tap + to pick from the warm-up pool.",
+                        actionTint: Theme.warmup
+                    )
                 } else {
                     ForEach(warmups) { guide in
                         if let item = guide.guideItem {
@@ -185,6 +179,7 @@ struct ExerciseListView: View {
                             .foregroundStyle(Theme.warmup)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Add warm-up")
                 }
             }
             .tint(Theme.warmup)
@@ -196,9 +191,11 @@ struct ExerciseListView: View {
     private var exercisesSection: some View {
         Section {
             if exercises.isEmpty {
-                Text("No exercises added yet.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                EmptyStateView(
+                    systemImage: "dumbbell",
+                    title: "No exercises yet",
+                    subtitle: "Tap + above to add your first exercise."
+                )
             } else {
                 ForEach(visibleExercises) { exercise in
                     ExerciseRow(
@@ -218,14 +215,13 @@ struct ExerciseListView: View {
                         } label: {
                             Label("Rename", systemImage: "pencil")
                         }
-                        
+
                         Button(role: .destructive) {
                             exerciseToDelete = exercise
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
                     }
-                    .environment(timerState)
                 }
                 .onDelete(perform: promptDeleteExercises)
                 
@@ -257,19 +253,23 @@ struct ExerciseListView: View {
                     Image(systemName: "plus")
                         .foregroundStyle(Theme.accent)
                 }
+                .accessibilityLabel("Add exercise")
             }
         }
         .listRowSeparator(.hidden)
     }
-    
+
     @ViewBuilder
     private var coolDownSection: some View {
         Section {
             DisclosureGroup(isExpanded: $isCooldownExpanded) {
                 if stretches.isEmpty {
-                    Text("No cool-downs added.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    EmptyStateView(
+                        systemImage: "snowflake",
+                        title: "No cool-downs added",
+                        subtitle: "Tap + to pick from the cool-down pool.",
+                        actionTint: Theme.cooldown
+                    )
                 } else {
                     ForEach(stretches) { guide in
                         if let item = guide.guideItem {
@@ -300,6 +300,7 @@ struct ExerciseListView: View {
                             .foregroundStyle(Theme.cooldown)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Add cool-down")
                 }
             }
             .tint(Theme.cooldown)

@@ -11,6 +11,31 @@ struct DataMigration {
         ensureUniqueIDs(modelContext: modelContext)
         deduplicateSetReferences(modelContext: modelContext)
         migrateCapitalization(modelContext: modelContext)
+        backfillCachedLastLogDate(modelContext: modelContext)
+    }
+
+    /// Migration: Backfill Exercise.cachedLastLogDate from existing sets.
+    /// Runs every launch, but only writes when cache is stale — cheap on subsequent runs.
+    private static func backfillCachedLastLogDate(modelContext: ModelContext) {
+        do {
+            let exercises = try modelContext.fetch(FetchDescriptor<Exercise>())
+            var needsSave = false
+
+            for exercise in exercises {
+                let actual = exercise.sets.max(by: { $0.date < $1.date })?.date
+                if exercise.cachedLastLogDate != actual {
+                    exercise.cachedLastLogDate = actual
+                    needsSave = true
+                }
+            }
+
+            if needsSave {
+                try modelContext.save()
+                print("cachedLastLogDate backfill completed successfully")
+            }
+        } catch {
+            print("Error during cachedLastLogDate backfill: \(error)")
+        }
     }
 
     /// Migration: Enforce Title Case for all Exercises and Muscle Groups

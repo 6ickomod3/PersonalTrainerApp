@@ -219,6 +219,13 @@ class TimerManager {
         let seconds = secondsRemaining % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
+
+    /// Fraction of the current rest remaining (0...1). Drives the progress ring.
+    var progress: Double {
+        guard userSetDuration > 0 else { return 0 }
+        let raw = Double(secondsRemaining) / Double(userSetDuration)
+        return min(max(raw, 0), 1)
+    }
     
     deinit {
         timer?.invalidate()

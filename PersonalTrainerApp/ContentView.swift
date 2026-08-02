@@ -16,7 +16,6 @@ struct ContentView: View {
     @State private var showingSettingsSheet = false
     @State private var newGroupName = ""
     @State private var isEditingOrder = false
-    @State private var timerState = TimerState()
 
     // Navigation
     @State private var path = NavigationPath()
@@ -29,78 +28,60 @@ struct ContentView: View {
         appSettings.first ?? AppSettings()
     }
 
-    var spacerHeight: CGFloat { timerState.spacerHeight }
-
     var body: some View {
-        ZStack {
-            NavigationStack(path: $path) {
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // Header
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(Date().formatted(date: .complete, time: .omitted).uppercased())
-                                    .font(.caption.bold())
-                                    .foregroundStyle(.secondary)
+        NavigationStack(path: $path) {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Header
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(Date().formatted(date: .complete, time: .omitted).uppercased())
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
 
-                                Text("Let's crush it, Ji! 💪")
-                                    .font(.title2.bold())
-                                    .foregroundStyle(.primary)
-                            }
-                            Spacer()
-                        }
-                        .padding(.horizontal)
-                        .padding(.top)
-
-                        // 1. Strength Section
-                        StrengthTrainingView(path: $path)
-                            .environment(timerState)
-
-                        // 2. Cardio Section
-                        CardioSectionView()
-
-                        // 3. Calendar Section
-                        CalendarSectionView()
-
-                        // Spacer for Timer
-                        Color.clear.frame(height: spacerHeight)
-                    }
-                }
-                .navigationTitle("Sigma Training")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Menu {
-                            Button("Settings", systemImage: "gear") {
-                                showingSettingsSheet = true
-                            }
-                        } label: {
-                            Image(systemName: "line.3.horizontal")
-                                .font(.title3)
+                            Text(Greeter.greeting(name: settings.userName))
+                                .font(.title2.bold())
                                 .foregroundStyle(.primary)
                         }
+                        Spacer()
                     }
+                    .padding(.horizontal)
+                    .padding(.top)
 
-                    ToolbarItem(placement: .topBarTrailing) {
-                        // Placeholders or future actions
-                    }
-                }
-                .navigationDestination(for: MuscleGroup.self) { group in
-                    ExerciseListView(muscleGroup: group)
-                        .environment(timerState)
-                }
-                .navigationDestination(for: Exercise.self) { exercise in
-                    ExerciseDetailView(exercise: exercise)
-                        .environment(timerState)
+                    // 1. Strength Section
+                    StrengthTrainingView(path: $path)
+
+                    // 2. Cardio Section
+                    CardioSectionView()
+
+                    // 3. Calendar Section
+                    CalendarSectionView()
                 }
             }
-
-            // Fixed Timer at Bottom
-            VStack {
-                Spacer()
-                TimerView(timerState: timerState, defaultTimerDuration: settings.defaultTimerDuration)
+            .navigationTitle("Sigma Training")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        Button("Settings", systemImage: "gear") {
+                            showingSettingsSheet = true
+                        }
+                    } label: {
+                        Image(systemName: "line.3.horizontal")
+                            .font(.title3)
+                            .foregroundStyle(.primary)
+                    }
+                }
             }
-            .ignoresSafeArea(edges: .bottom)
+            .navigationDestination(for: MuscleGroup.self) { group in
+                ExerciseListView(muscleGroup: group)
+            }
+            .navigationDestination(for: Exercise.self) { exercise in
+                ExerciseDetailView(exercise: exercise)
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            TimerView(defaultTimerDuration: settings.defaultTimerDuration)
         }
         .onAppear {
             DataMigration.performMigrations(modelContext: modelContext)
@@ -178,5 +159,78 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+}
+
+// MARK: - Greeter
+
+enum Greeter {
+    private enum Bucket {
+        case morning, afternoon, evening, lateNight
+
+        static func from(hour: Int) -> Bucket {
+            switch hour {
+            case 5..<12:  return .morning
+            case 12..<17: return .afternoon
+            case 17..<22: return .evening
+            default:      return .lateNight
+            }
+        }
+
+        var phrases: [String] {
+            switch self {
+            case .morning:
+                return [
+                    "Good morning{name}! Time to move 💪",
+                    "Rise and grind{name} ☀️",
+                    "Morning{name} — let's go!",
+                    "Up early{name}? Strong start.",
+                    "New day{name}, new PRs 🚀",
+                    "Let's wake those muscles up{name}!"
+                ]
+            case .afternoon:
+                return [
+                    "Crushing it{name}? 💪",
+                    "Midday push{name}!",
+                    "Afternoon energy{name} ⚡️",
+                    "Stay strong{name}!",
+                    "Halfway there{name} — keep going.",
+                    "Lunch break gains{name}?"
+                ]
+            case .evening:
+                return [
+                    "Evening warrior{name} 🔥",
+                    "End the day strong{name}!",
+                    "Powering through{name}!",
+                    "One more set{name}, you got this.",
+                    "Sunset reps{name}? Let's go.",
+                    "Finish strong{name} 💪"
+                ]
+            case .lateNight:
+                return [
+                    "Late-night grind{name} 🌙",
+                    "Burning the midnight oil{name}?",
+                    "Night owl mode{name} 🦉",
+                    "Quiet gym, loud gains{name}.",
+                    "Still at it{name}? Respect.",
+                    "After-hours hustle{name}!"
+                ]
+            }
+        }
+    }
+
+    /// Returns a greeting that varies by time-of-day and rotates daily.
+    static func greeting(for date: Date = Date(), name: String = "", calendar: Calendar = .current) -> String {
+        let hour = calendar.component(.hour, from: date)
+        let bucket = Bucket.from(hour: hour)
+        let phrases = bucket.phrases
+
+        let dayOfYear = calendar.ordinality(of: .day, in: .year, for: date) ?? 0
+        let index = dayOfYear % phrases.count
+        let template = phrases[index]
+
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let nameSuffix = trimmedName.isEmpty ? "" : ", \(trimmedName)"
+        return template.replacingOccurrences(of: "{name}", with: nameSuffix)
+    }
 }
 
