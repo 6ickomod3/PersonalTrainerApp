@@ -1,129 +1,86 @@
 import SwiftUI
 import Charts
-import SwiftData
 
 struct ExerciseAnalyticsView: View {
     let exercise: Exercise
-    
-    // Data Structure for Charts
+
     struct DailyStats: Identifiable {
-        let id = UUID()
+        var id: Date { date }
         let date: Date
         let totalVolume: Double
         let maxWeight: Double
     }
-    
-    // Computed property to get the last 7 logged days
-    var recentStats: [DailyStats] {
-        let calendar = Calendar.current
-        
-        // 1. Group sets by day
-        let groupedSets = Dictionary(grouping: exercise.sets) { set in
-            calendar.startOfDay(for: set.date)
+
+    private var recentStats: [DailyStats] {
+        let grouped = Dictionary(grouping: exercise.sets) { Calendar.current.startOfDay(for: $0.date) }
+        let stats = grouped.map { date, sets in
+            DailyStats(date: date, totalVolume: sets.reduce(0) { $0 + $1.volume }, maxWeight: sets.map(\.weight).max() ?? 0)
         }
-        
-        // 2. Calculate stats for each day
-        let stats = groupedSets.map { (date, sets) -> DailyStats in
-            let totalVol = sets.reduce(0) { $0 + $1.volume }
-            let maxW = sets.map(\.weight).max() ?? 0.0
-            return DailyStats(date: date, totalVolume: totalVol, maxWeight: maxW)
-        }
-        
-        // 3. Sort by date and take last 7
-        let sortedStats = stats.sorted { $0.date < $1.date }
-        return Array(sortedStats.suffix(7))
+        return Array(stats.sorted { $0.date < $1.date }.suffix(7))
     }
-    
+
     var body: some View {
-        if !recentStats.isEmpty {
-            VStack(alignment: .leading, spacing: 24) {
-                // Header
-                Label("Progress Trends", systemImage: "chart.xyaxis.line")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                
-                // 1. Volume Chart
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Total Volume (lbs)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    
-                    Chart {
-                        ForEach(Array(recentStats.enumerated()), id: \.element.id) { index, stat in
-                            // Right-align data: map index 0..<count to (7-count)..<7
-                            let offset = 7 - recentStats.count
-                            let xValue = offset + index
-                            
-                            LineMark(
-                                x: .value("Index", xValue),
-                                y: .value("Volume", stat.totalVolume)
-                            )
-                            .foregroundStyle(Theme.dataHighlight.gradient)
-                            .interpolationMethod(.catmullRom)
-                            
-                            AreaMark(
-                                x: .value("Index", xValue),
-                                y: .value("Volume", stat.totalVolume)
-                            )
-                            .foregroundStyle(Theme.dataHighlight.opacity(0.1).gradient)
-                            .interpolationMethod(.catmullRom)
+        let stats = recentStats
+        List {
+            if stats.isEmpty {
+                ContentUnavailableView("No progress yet", systemImage: "chart.xyaxis.line", description: Text("Log a set to start tracking your training."))
+            } else {
+                if let target = exercise.suggestedVolume {
+                    Section {
+                        LabeledContent("Suggested volume", value: "\(target.formatted(.number.precision(.fractionLength(0...1)))) lbs")
+                    } footer: {
+                        Text("Previous training volume plus \(exercise.volumeImprovementPercent.formatted(.number.precision(.fractionLength(0...1))))%. Volume is reps × weight summed across sets.")
+                    }
+                }
+                Section("Volume (lbs)") {
+                    Chart(stats) { stat in
+                        LineMark(x: .value("Date", stat.date), y: .value("Volume", stat.totalVolume))
+                            .foregroundStyle(Theme.dataHighlight)
+                        PointMark(x: .value("Date", stat.date), y: .value("Volume", stat.totalVolume))
+                            .foregroundStyle(Theme.dataHighlight)
+                    }
+                    .chartXAxis {
+                        AxisMarks(values: .automatic(desiredCount: 4)) {
+                            AxisGridLine()
+                            AxisValueLabel(format: .dateTime.month(.abbreviated).day())
                         }
                     }
-                    .chartXScale(domain: 0...6)
-                    .chartXAxis(.hidden)
-                    .frame(height: 150)
+                    .frame(height: 180)
+                    .padding(.vertical, 8)
+                    .accessibilityLabel("Training volume by date")
                 }
-                .padding()
-                .background(Theme.innerCardBackground)
-                .cornerRadius(Theme.innerRadius)
-                
-                // 2. Max Weight Chart
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Max Weight (lbs)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    
-                    Chart {
-                        ForEach(Array(recentStats.enumerated()), id: \.element.id) { index, stat in
-                            let offset = 7 - recentStats.count
-                            let xValue = offset + index
-                            
-                            LineMark(
-                                x: .value("Index", xValue),
-                                y: .value("Weight", stat.maxWeight)
-                            )
-                            .foregroundStyle(Theme.accent.gradient)
-                            .interpolationMethod(.catmullRom)
-                            
-                            PointMark(
-                                x: .value("Index", xValue),
-                                y: .value("Weight", stat.maxWeight)
-                            )
+                Section("Heaviest set (lbs)") {
+                    Chart(stats) { stat in
+                        LineMark(x: .value("Date", stat.date), y: .value("Weight", stat.maxWeight))
                             .foregroundStyle(Theme.accent)
+                        PointMark(x: .value("Date", stat.date), y: .value("Weight", stat.maxWeight))
+                            .foregroundStyle(Theme.accent)
+                    }
+                    .chartXAxis {
+                        AxisMarks(values: .automatic(desiredCount: 4)) {
+                            AxisGridLine()
+                            AxisValueLabel(format: .dateTime.month(.abbreviated).day())
                         }
                     }
-                    .chartXScale(domain: 0...6)
-                    .chartXAxis(.hidden)
-                    .frame(height: 150)
+                    .frame(height: 180)
+                    .padding(.vertical, 8)
+                    .accessibilityLabel("Heaviest set by date")
                 }
-                .padding()
-                .background(Theme.innerCardBackground)
-                .cornerRadius(Theme.innerRadius)
+                Section("Last \(stats.count) training day\(stats.count == 1 ? "" : "s")") {
+                    ForEach(stats.reversed()) { stat in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(stat.date, format: .dateTime.month(.abbreviated).day().year())
+                                .font(.subheadline.weight(.semibold))
+                            Text("Volume: \(stat.totalVolume.formatted(.number.precision(.fractionLength(0...1)))) lbs · Heaviest: \(stat.maxWeight.formatted(.number.precision(.fractionLength(0...3)))) lbs")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
             }
-        } else {
-            // Not enough data for a chart, but show something
-             VStack(alignment: .leading, spacing: 8) {
-                 Label("Progress Trends", systemImage: "chart.xyaxis.line")
-                     .font(.headline)
-                 
-                 Text("Log more workouts to see your progress charts!")
-                     .font(.subheadline)
-                     .foregroundStyle(.secondary)
-                     .frame(maxWidth: .infinity, alignment: .center)
-                     .padding()
-                     .background(Theme.innerCardBackground)
-                     .cornerRadius(Theme.innerRadius)
-             }
         }
+        .navigationTitle("Progress")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

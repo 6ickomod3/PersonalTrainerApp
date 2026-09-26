@@ -2,156 +2,95 @@ import SwiftUI
 import SwiftData
 
 struct StrengthTrainingView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Query(sort: \MuscleGroup.displayOrder) private var muscleGroups: [MuscleGroup]
-    
-    @Query private var allExercises: [Exercise]
+    @Query private var exercises: [Exercise]
+    @Query private var settings: [AppSettings]
+    @Binding var path: NavigationPath
+    @State private var showingAdd = false
+    @State private var showingManage = false
 
-    @Environment(\.modelContext) private var modelContext
-    @State private var muscleGroupToDelete: MuscleGroup?
-    @State private var jumpBackCount = 0
-    @Binding var path: NavigationPath // Receive Path
-    
-    // Computed property to find the last logged exercise (O(n) via cached date)
-    var lastLoggedExercise: Exercise? {
-        allExercises
-            .compactMap { ex -> (Exercise, Date)? in
-                guard let date = ex.lastLogDate else { return nil }
-                return (ex, date)
-            }
-            .max(by: { $0.1 < $1.1 })?
-            .0
+    private var lastExercise: Exercise? {
+        exercises.filter { $0.lastLogDate != nil }.max { $0.lastLogDate! < $1.lastLogDate! }
     }
 
-    /// Exercises grouped by muscle group name, for the card metadata lookup.
-    private var exercisesByGroup: [String: [Exercise]] {
-        Dictionary(grouping: allExercises, by: \.muscleGroupName)
+    private var todaySets: [WorkoutSet] {
+        exercises.flatMap(\.sets).filter { Calendar.current.isDateInToday($0.date) }
     }
-    
-    // Grid layout
-    let columns = [
-        GridItem(.flexible()),
-        GridItem(.flexible())
-    ]
-    
+
+    private var columns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), alignment: .top), count: dynamicTypeSize.isAccessibilitySize ? 1 : 2)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            
-            HStack {
-                Label("Strength", systemImage: "dumbbell.fill")
-                    .font(.title3.bold())
-                    .foregroundStyle(Theme.accentGradient)
-                Spacer()
+        VStack(alignment: .leading, spacing: Theme.sectionSpacing) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(Date.now.formatted(.dateTime.weekday(.wide).month().day()))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                let name = settings.first?.userName.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                Text(name.isEmpty ? "Your training, one set at a time." : "Ready to train, \(name)?")
+                    .font(.title3.weight(.semibold))
+                Text(todaySets.isEmpty ? "No sets yet today. Choose an exercise to begin." : "\(todaySets.count) sets logged today")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("TodaySummary")
             }
-            .padding(.horizontal)
-            
-            // "Jump Back In" Shortcut
-            if let lastExercise = lastLoggedExercise {
-                Button(action: {
-                    jumpBackIn(for: lastExercise)
-                    jumpBackCount += 1
-                }) {
-                    HStack {
-                        Image(systemName: "clock.arrow.circlepath")
+
+            if let exercise = lastExercise {
+                Button {
+                    if let group = muscleGroups.first(where: { $0.name == exercise.muscleGroupName }) {
+                        path.append(group)
+                    }
+                    path.append(exercise)
+                } label: {
+                    HStack(spacing: 14) {
+                        Image(systemName: "arrow.clockwise")
                             .font(.title2)
-                            .foregroundStyle(.white)
-                            .padding(10)
-                            .background(Circle().fill(Theme.accent.gradient))
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Jump Back In")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .textCase(.uppercase)
-                        
-                            Text(lastExercise.name)
-                                .font(.headline)
-                                .foregroundStyle(.primary)
+                            .foregroundStyle(Theme.accent)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Continue training").font(.caption).foregroundStyle(.secondary)
+                            Text(exercise.name).font(.headline).foregroundStyle(.primary)
                         }
-                        
                         Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Image(systemName: "chevron.right").foregroundStyle(.secondary)
                     }
                     .padding()
-                    .themeCard(radius: Theme.innerRadius)
-                    .padding(.horizontal)
+                    .themeCard()
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("ContinueTrainingButton")
             }
- 
-            if muscleGroups.isEmpty {
-                EmptyStateView(
-                    systemImage: "dumbbell",
-                    title: "No muscle groups yet",
-                    subtitle: "Add a group to start tracking strength workouts."
-                )
-                .padding(.horizontal)
-            } else {
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(muscleGroups) { group in
-                        NavigationLink(value: group) {
-                            MuscleGroupCard(
-                                group: group,
-                                exercises: exercisesByGroup[group.name] ?? []
-                            )
-                        }
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                muscleGroupToDelete = group
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Muscle groups").font(.headline)
+                    Spacer()
+                    Button("Manage") { showingManage = true }
+                        .frame(minHeight: 44)
+                    Button("Add group", systemImage: "plus") { showingAdd = true }
+                        .labelStyle(.iconOnly)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .accessibilityIdentifier("AddGroupButton")
+                }
+                if muscleGroups.isEmpty {
+                    EmptyStateView(systemImage: "dumbbell", title: "Create your first group", subtitle: "Organize exercises around how you train.", actionLabel: "Add group", action: { showingAdd = true })
+                } else {
+                    LazyVGrid(columns: columns, spacing: Theme.itemSpacing) {
+                        ForEach(muscleGroups) { group in
+                            NavigationLink(value: group) {
+                                MuscleGroupCard(group: group, exercises: exercises.filter { $0.muscleGroupName == group.name })
                             }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("Group-\(group.name)")
                         }
                     }
                 }
-                .padding(.horizontal)
             }
         }
-        .sensoryFeedback(.selection, trigger: jumpBackCount)
-        .alert("Delete Muscle Group?", isPresented: Binding(
-            get: { muscleGroupToDelete != nil },
-            set: { if !$0 { muscleGroupToDelete = nil } }
-        )) {
-            Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
-                if let group = muscleGroupToDelete {
-                    deleteMuscleGroup(group)
-                }
-            }
-        } message: {
-             if let group = muscleGroupToDelete {
-                 Text("Are you sure you want to delete '\(group.name)'? This will delete all associated exercises and logs.")
-             }
-        }
-    }
-    
-    private func jumpBackIn(for exercise: Exercise) {
-        // Find the Muscle Group for this exercise
-        if let group = muscleGroups.first(where: { $0.name == exercise.muscleGroupName }) {
-            // Push Muscle Group First
-            path.append(group)
-            // Push Exercise Second
-            path.append(exercise)
-        } else {
-            // Fallback if group not found (shouldn't happen usually)
-            path.append(exercise)
-        }
-    }
-    
-    private func deleteMuscleGroup(_ group: MuscleGroup) {
-        // Delete all exercises associated with this group
-        // Note: Cascaade delete might be handled by SwiftData if configured, but manual safety is good
-        // Finding exercises for this group
-        let groupExercises = allExercises.filter { $0.muscleGroupName == group.name }
-        for exercise in groupExercises {
-            modelContext.delete(exercise)
-        }
-        
-        modelContext.delete(group)
-        modelContext.safeSave()
-        muscleGroupToDelete = nil
+        .padding(.horizontal)
+        .sheet(isPresented: $showingAdd) { AddMuscleGroupSheet() }
+        .sheet(isPresented: $showingManage) { ManageMuscleGroupsView() }
     }
 }
 
@@ -159,72 +98,103 @@ struct MuscleGroupCard: View {
     let group: MuscleGroup
     let exercises: [Exercise]
 
-    private var iconName: String {
-        switch group.name.lowercased() {
-        case "chest":                   return "figure.arms.open"
-        case "back":                    return "figure.cooldown"
-        case "leg", "legs":             return "figure.walk"
-        case "shoulder", "shoulders":   return "figure.boxing"
-        case "arm", "arms":             return "dumbbell.fill"
-        case "core", "abs":             return "figure.core.training"
-        default:                        return "dumbbell.fill"
-        }
-    }
-
-    private var groupLastLogDate: Date? {
-        exercises.compactMap(\.lastLogDate).max()
-    }
-
-    private var lastTrainedLabel: String? {
-        guard let date = groupLastLogDate else { return nil }
-        let calendar = Calendar.current
-        if calendar.isDateInToday(date) { return "Trained today" }
-        if calendar.isDateInYesterday(date) { return "Trained yesterday" }
-        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: date), to: calendar.startOfDay(for: Date())).day ?? 0
-        if days < 7 { return "Trained \(days)d ago" }
-        let weeks = days / 7
-        if weeks < 5 { return "Trained \(weeks)w ago" }
-        return "Trained 1mo+ ago"
+    private var lastTrained: String {
+        guard let date = exercises.compactMap(\.lastLogDate).max() else { return "Ready when you are" }
+        if Calendar.current.isDateInToday(date) { return "Trained today" }
+        if Calendar.current.isDateInYesterday(date) { return "Trained yesterday" }
+        return "Last: \(date.formatted(.dateTime.month(.abbreviated).day()))"
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top) {
-                Image(systemName: iconName)
-                    .font(.title3)
-                    .foregroundStyle(Theme.accent)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption2)
-                    .foregroundStyle(Theme.muted)
+                Text(group.name).font(.headline).foregroundStyle(.primary)
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
             }
+            Text("\(exercises.count) exercise\(exercises.count == 1 ? "" : "s")")
+                .font(.subheadline).foregroundStyle(Theme.accent)
+            Text(lastTrained).font(.caption).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, minHeight: 80, alignment: .topLeading)
+        .padding(Theme.cardPadding)
+        .themeCard()
+        .accessibilityElement(children: .combine)
+    }
+}
 
-            Spacer(minLength: 0)
+struct ManageMuscleGroupsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \MuscleGroup.displayOrder) private var groups: [MuscleGroup]
+    @Query private var exercises: [Exercise]
+    @State private var editingGroup: MuscleGroup?
+    @State private var deletingGroup: MuscleGroup?
+    @State private var errorMessage: String?
 
-            Text(group.name)
-                .font(.headline)
-                .foregroundStyle(Theme.accent)
-
-            HStack(spacing: 6) {
-                Text("\(exercises.count) exercise\(exercises.count == 1 ? "" : "s")")
-                    .font(.caption2.weight(.medium))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Theme.accent.opacity(0.15)))
-                    .foregroundStyle(Theme.accent)
-
-                if let label = lastTrainedLabel {
-                    Text(label)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    ForEach(groups) { group in
+                        HStack {
+                            Text(group.name)
+                            Spacer()
+                            Button("Rename") { editingGroup = group }
+                                .buttonStyle(.borderless)
+                        }
+                    }
+                    .onDelete { offsets in
+                        if let index = offsets.first { deletingGroup = groups[index] }
+                    }
+                    .onMove { source, destination in
+                        var ordered = groups
+                        ordered.move(fromOffsets: source, toOffset: destination)
+                        for (index, group) in ordered.enumerated() { group.displayOrder = index }
+                        save()
+                    }
+                } footer: {
+                    Text("Rename a group, or tap Edit to reorder or delete. Deleting a group also deletes its exercises and workout history.")
                 }
             }
+            .navigationTitle("Manage groups")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { EditButton() }
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+            }
+            .sheet(item: $editingGroup) { AddMuscleGroupSheet(group: $0) }
+            .alert("Delete group?", isPresented: Binding(get: { deletingGroup != nil }, set: { if !$0 { deletingGroup = nil } })) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete", role: .destructive) { deleteGroup() }
+            } message: {
+                Text("Deleting \(deletingGroup?.name ?? "this group") permanently removes its exercises, sets, and saved guide assignments.")
+            }
+            .alert("Couldn't save changes", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+                Button("OK", role: .cancel) { }
+            } message: { Text(errorMessage ?? "Please try again.") }
         }
-        .padding(Theme.cardPadding)
-        .frame(height: 110, alignment: .topLeading)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .themeCard()
+    }
+
+    private func deleteGroup() {
+        guard let group = deletingGroup else { return }
+        guard groups.filter({ $0.name == group.name }).count == 1 else {
+            errorMessage = "More than one saved group has this name. Deletion was stopped to protect their shared exercise history."
+            deletingGroup = nil
+            return
+        }
+        for exercise in exercises where exercise.muscleGroupName == group.name { modelContext.delete(exercise) }
+        modelContext.delete(group)
+        deletingGroup = nil
+        save()
+    }
+
+    private func save() {
+        do { try modelContext.save() }
+        catch {
+            modelContext.rollback()
+            modelContext.processPendingChanges()
+            errorMessage = "Your changes couldn't be saved. Please try again."
+        }
     }
 }

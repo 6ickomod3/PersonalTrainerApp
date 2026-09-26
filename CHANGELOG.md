@@ -1,3 +1,13 @@
+## v1.7.0 — Strength focus (2026-09-26)
+
+- Replaced the mixed dashboard with Train and History; removed warm-up, cool-down, and cardio screens while retaining their saved data and original schema.
+- Added visible group management, stable exercise ordering/search, focused set logging, repeat/edit/delete/undo, and separate Progress/Instructions.
+- Stopped automatic history pruning; guarded invalid weight configurations and preserved historical values.
+- Fixed locale-sensitive calendar alignment, grouped history by exercise identity, and retained unassigned records.
+- Added compact shared rest controls, default-duration synchronization, safer Live Activity ownership, and background deadline reconciliation.
+- Build 3: moved the timer into its own layout row to prevent content overlap, reduced its collapsed height, and added empty-area tapping to expand/collapse adjustments.
+- Removed sample widgets and obsolete UI code; restored working regression tests and added retained-data upgrade checks.
+
 # Changelog
 
 All notable changes to Personal Trainer App will be documented in this file.

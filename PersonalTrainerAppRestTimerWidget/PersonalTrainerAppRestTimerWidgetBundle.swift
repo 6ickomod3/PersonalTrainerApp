@@ -11,8 +11,6 @@ import SwiftUI
 @main
 struct PersonalTrainerAppRestTimerWidgetBundle: WidgetBundle {
     var body: some Widget {
-        PersonalTrainerAppRestTimerWidget()
-        PersonalTrainerAppRestTimerWidgetControl()
         PersonalTrainerAppRestTimerWidgetLiveActivity()
     }
 }

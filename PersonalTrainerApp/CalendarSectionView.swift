@@ -1,361 +1,198 @@
 import SwiftUI
 import SwiftData
 
+/// Calendar arithmetic shared by the grid and locale regression tests.
+enum TrainingCalendar {
+    static func days(in month: Date, calendar: Calendar = .current) -> [Date?] {
+        guard let interval = calendar.dateInterval(of: .month, for: month),
+              let range = calendar.range(of: .day, in: .month, for: month) else { return [] }
+        let weekday = calendar.component(.weekday, from: interval.start)
+        let offset = (weekday - calendar.firstWeekday + 7) % 7
+        return Array(repeating: nil, count: offset) + range.map {
+            calendar.date(byAdding: .day, value: $0 - 1, to: interval.start)
+        }
+    }
+}
+
 struct CalendarSectionView: View {
-    @Query private var sets: [WorkoutSet]
-    @Query private var cardioLogs: [CardioLog]
-    
+    @Query(sort: \WorkoutSet.date, order: .reverse) private var sets: [WorkoutSet]
     @State private var currentMonth = Date()
-    @State private var selectedDate: Date?
-    
-    // Compute days with workouts
-    var daysWithWorkouts: [Date: Set<String>] {
-        var map: [Date: Set<String>] = [:]
-        
-        for set in sets {
-            let date = Calendar.current.startOfDay(for: set.date)
-            if map[date] == nil { map[date] = [] }
-            map[date]?.insert("strength")
-        }
-        
-        for log in cardioLogs {
-            let date = Calendar.current.startOfDay(for: log.date)
-            if map[date] == nil { map[date] = [] }
-            map[date]?.insert("cardio")
-        }
-        
-        return map
+    @State private var selectedDate = Date()
+
+    private var trainingDays: Set<Date> {
+        Set(sets.map { Calendar.current.startOfDay(for: $0.date) })
     }
-    
-    var monthlyStats: (strength: Int, cardio: Int) {
-        let calendar = Calendar.current
-        var strengthCount = 0
-        var cardioCount = 0
-        
-        for (date, types) in daysWithWorkouts {
-            if calendar.isDate(date, equalTo: currentMonth, toGranularity: .month) {
-                if types.contains("strength") { strengthCount += 1 }
-                if types.contains("cardio") { cardioCount += 1 }
-            }
-        }
-        
-        return (strengthCount, cardioCount)
+
+    private var monthCount: Int {
+        trainingDays.filter { Calendar.current.isDate($0, equalTo: currentMonth, toGranularity: .month) }.count
     }
-    
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .bottom) {
-                Label("Activity", systemImage: "calendar")
-                    .font(.title3.bold())
-                
-                Spacer()
-                
-                // Monthly Stats
-                HStack(spacing: 12) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "dumbbell.fill")
-                            .font(.caption2)
-                        Text("\(monthlyStats.strength) days")
-                            .font(.caption.bold())
-                    }
-                    .foregroundStyle(Theme.accent)
-                    
-                    HStack(spacing: 4) {
-                        Image(systemName: "figure.run")
-                            .font(.caption2)
-                        Text("\(monthlyStats.cardio) days")
-                            .font(.caption.bold())
-                    }
-                    .foregroundStyle(Theme.cardio)
-                }
-                .padding(.bottom, 2)
-            }
-            .padding(.horizontal)
-
-            VStack(spacing: 0) {
-                CalendarGrid(currentMonth: $currentMonth, selectedDate: $selectedDate, activityMap: daysWithWorkouts)
-                    .padding()
-
-                if let date = selectedDate {
-                    Divider()
-                        .padding(.horizontal)
-
-                    DailyLogView(date: date, sets: sets, cardioLogs: cardioLogs)
-                        // Simple appear without "falling" animation
-                        .transition(.opacity)
-                }
-            }
-            .themeCard()
-            .padding(.horizontal)
+        VStack(alignment: .leading, spacing: Theme.sectionSpacing) {
+            Text("\(monthCount) strength training day\(monthCount == 1 ? "" : "s") this month")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("StrengthHistorySummary")
+            CalendarGrid(currentMonth: $currentMonth, selectedDate: $selectedDate, trainingDays: trainingDays)
+                .padding(12)
+                .themeCard()
+            DailyLogView(date: selectedDate, sets: sets)
         }
-        // Keep the layout animation for smooth resizing, but it won't be "falling"
-        .animation(.spring(response: 0.3, dampingFraction: 1), value: selectedDate)
+        .padding(.horizontal)
         .sensoryFeedback(.selection, trigger: selectedDate)
     }
 }
 
 struct CalendarGrid: View {
     @Binding var currentMonth: Date
-    @Binding var selectedDate: Date?
-    let activityMap: [Date: Set<String>]
-    
-    var daysOfWeek: [String] {
-        let calendar = Calendar.current
-        let symbols = calendar.veryShortStandaloneWeekdaySymbols
-        let firstWeekday = calendar.firstWeekday - 1
-        return Array(symbols[firstWeekday...] + symbols[..<firstWeekday])
+    @Binding var selectedDate: Date
+    let trainingDays: Set<Date>
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+
+    private var weekdaySymbols: [String] {
+        let symbols = Calendar.current.veryShortStandaloneWeekdaySymbols
+        let first = Calendar.current.firstWeekday - 1
+        return Array(symbols[first...] + symbols[..<first])
     }
-    let columns = Array(repeating: GridItem(.flexible()), count: 7)
-    
+
     var body: some View {
-        VStack {
-            // Month Header
+        VStack(spacing: 12) {
             HStack {
-                Text(currentMonth.formatted(.dateTime.month().year()))
-                    .font(.headline)
-                Spacer()
-                HStack(spacing: 20) {
-                    Button(action: { changeMonth(by: -1) }) {
-                        Image(systemName: "chevron.left")
-                    }
-                    .accessibilityLabel("Previous month")
-                    Button(action: { changeMonth(by: 1) }) {
-                        Image(systemName: "chevron.right")
-                    }
-                    .accessibilityLabel("Next month")
-                }
-                .foregroundStyle(.secondary)
+                Text(currentMonth.formatted(.dateTime.month().year())).font(.headline)
+                Spacer(minLength: 0)
+                Button("Previous month", systemImage: "chevron.left") { changeMonth(-1) }
+                    .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                Button("Next month", systemImage: "chevron.right") { changeMonth(1) }
+                    .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
             }
-            .padding(.bottom)
-            
-            // Days Header
-            LazyVGrid(columns: columns) {
-                ForEach(Array(daysOfWeek.enumerated()), id: \.offset) { _, day in
-                    Text(day)
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.secondary)
+            LazyVGrid(columns: columns, spacing: 4) {
+                ForEach(Array(weekdaySymbols.enumerated()), id: \.offset) { _, symbol in
+                    Text(symbol).font(.caption).foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
                 }
-            }
-            
-            // Days Grid
-            LazyVGrid(columns: columns, spacing: 10) {
-                ForEach(daysInMonth(), id: \.self) { date in
-                    if let date = date {
-                        DayCell(date: date, activities: activityMap[date], isSelected: isSelected(date))
-                            .onTapGesture {
-                                if isSelected(date) {
-                                    selectedDate = nil
-                                } else {
-                                    selectedDate = date
-                                }
+                ForEach(Array(TrainingCalendar.days(in: currentMonth).enumerated()), id: \.offset) { _, date in
+                    if let date {
+                        let selected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
+                        let trained = trainingDays.contains(date)
+                        Button { selectedDate = date } label: {
+                            VStack(spacing: 3) {
+                                Text("\(Calendar.current.component(.day, from: date))")
+                                    .font(.callout)
+                                    .fontWeight(Calendar.current.isDateInToday(date) ? .bold : .regular)
+                                Circle()
+                                    .fill(trained ? (selected ? Color.white : Theme.accent) : .clear)
+                                    .frame(width: 5, height: 5)
                             }
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .foregroundStyle(selected ? Color.white : .primary)
+                            .background(selected ? Theme.primaryAction : Color.clear, in: RoundedRectangle(cornerRadius: 10))
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(date.formatted(date: .complete, time: .omitted))
+                        .accessibilityValue(trained ? "Strength training recorded" : "No training recorded")
+                        .accessibilityAddTraits(selected ? [.isSelected] : [])
                     } else {
-                        Text("")
+                        Color.clear.frame(height: 44).accessibilityHidden(true)
                     }
                 }
             }
-        }
-    }
-    
-    func isSelected(_ date: Date) -> Bool {
-        guard let selected = selectedDate else { return false }
-        return Calendar.current.isDate(date, inSameDayAs: selected)
-    }
-    
-    func changeMonth(by value: Int) {
-        if let newDate = Calendar.current.date(byAdding: .month, value: value, to: currentMonth) {
-            currentMonth = newDate
-        }
-    }
-    
-    func daysInMonth() -> [Date?] {
-        guard let monthInterval = Calendar.current.dateInterval(of: .month, for: currentMonth) else {
-            return []
-        }
-        
-        let daysInMonth = Calendar.current.range(of: .day, in: .month, for: currentMonth)!.count
-        let firstDayWeekday = Calendar.current.component(.weekday, from: monthInterval.start)
-        
-        // Calendar is 1-indexed (Sunday = 1)
-        let offset = firstDayWeekday - 1
-        
-        var days: [Date?] = Array(repeating: nil, count: offset)
-        
-        for day in 1...daysInMonth {
-            if let date = Calendar.current.date(byAdding: .day, value: day - 1, to: monthInterval.start) {
-                days.append(date)
+            Button("Today") {
+                currentMonth = Date()
+                selectedDate = Date()
             }
-        }
-        
-        return days
-    }
-}
-
-struct DayCell: View {
-    let date: Date
-    let activities: Set<String>?
-    let isSelected: Bool
-
-    var isToday: Bool {
-        Calendar.current.isDateInToday(date)
-    }
-
-    var dayNumberForeground: Color {
-        if isToday { return .white }
-        if isSelected { return .white }
-        return .primary
-    }
-
-    @ViewBuilder
-    var dayNumberBackground: some View {
-        if isToday {
-            Circle().fill(Theme.accent)
-        } else if isSelected {
-            Circle().fill(Color.primary.opacity(0.6))
+            .frame(minHeight: 44)
         }
     }
 
-    var strengthDotColor: Color {
-        (isToday || isSelected) ? .white : Theme.accent
-    }
-
-    var cardioDotColor: Color {
-        (isToday || isSelected) ? .white : Theme.cardio
-    }
-
-    var body: some View {
-        VStack(spacing: 3) {
-            Text("\(Calendar.current.component(.day, from: date))")
-                .font(.caption)
-                .foregroundStyle(dayNumberForeground)
-                .frame(width: 30, height: 30)
-                .background(dayNumberBackground)
-
-            HStack(spacing: 2) {
-                if let acts = activities {
-                    if acts.contains("strength") {
-                        Circle().fill(strengthDotColor).frame(width: 4, height: 4)
-                    }
-                    if acts.contains("cardio") {
-                        Circle().fill(cardioDotColor).frame(width: 4, height: 4)
-                    }
-                }
-            }
-            .frame(height: 4)
-        }
+    private func changeMonth(_ value: Int) {
+        guard let start = Calendar.current.dateInterval(of: .month, for: currentMonth)?.start,
+              let next = Calendar.current.date(byAdding: .month, value: value, to: start) else { return }
+        currentMonth = next
+        selectedDate = next
     }
 }
 
 struct DailyLogView: View {
+    @Environment(\.modelContext) private var modelContext
     let date: Date
     let sets: [WorkoutSet]
-    let cardioLogs: [CardioLog]
-    
-    var filteredSets: [WorkoutSet] {
-        sets.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
-            .sorted { $0.date < $1.date }
+    @State private var editingSet: WorkoutSet?
+
+    private var filteredSets: [WorkoutSet] {
+        sets.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }.sorted { $0.date < $1.date }
     }
-    
-    var filteredCardio: [CardioLog] {
-        cardioLogs.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
-            .sorted { $0.date < $1.date }
+
+    private var groups: [[WorkoutSet]] {
+        Dictionary(grouping: filteredSets, by: { $0.exercise?.persistentModelID }).values.sorted {
+            let left = $0.first?.exercise?.name ?? "Unassigned history"
+            let right = $1.first?.exercise?.name ?? "Unassigned history"
+            return left.localizedStandardCompare(right) == .orderedAscending
+        }
     }
-    
-    var setsByExercise: [String: [WorkoutSet]] {
-        Dictionary(grouping: filteredSets) { $0.exercise?.name ?? "Unknown" }
-    }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text(date.formatted(date: .complete, time: .omitted))
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-            
-            if filteredSets.isEmpty && filteredCardio.isEmpty {
-                Text("No workouts recorded.")
-                    .foregroundStyle(.secondary)
-                    .italic()
-                    .padding(.vertical)
+            Text(date.formatted(.dateTime.weekday(.wide).month().day())).font(.headline)
+            if filteredSets.isEmpty {
+                ContentUnavailableView("No sets recorded", systemImage: "dumbbell", description: Text("Your strength training for this day will appear here."))
             } else {
-                if !filteredSets.isEmpty {
+                ForEach(groups, id: \.first!.id) { group in
                     VStack(alignment: .leading, spacing: 12) {
-                        Label("Strength", systemImage: "dumbbell.fill")
-                            .font(.subheadline)
-                            .foregroundStyle(Theme.accent)
-                        
-                        ForEach(setsByExercise.keys.sorted(), id: \.self) { exerciseName in
-                            if let exerciseSets = setsByExercise[exerciseName] {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    if let firstSet = exerciseSets.first, let exercise = firstSet.exercise {
-                                        Text("\(exercise.muscleGroupName) - \(exerciseName)")
-                                            .font(.system(.body, design: .rounded).weight(.medium))
-                                    } else {
-                                        Text(exerciseName)
-                                            .font(.system(.body, design: .rounded).weight(.medium))
+                        if let exercise = group.first?.exercise {
+                            NavigationLink(value: exercise) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(exercise.name).font(.headline).foregroundStyle(.primary)
+                                        Text(exercise.muscleGroupName).font(.caption).foregroundStyle(.secondary)
                                     }
-                                    
-                                    Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 4) {
-                                        ForEach(exerciseSets) { set in
-                                            GridRow {
-                                                Text("\(set.reps) reps")
-                                                    .gridColumnAlignment(.trailing)
-                                                Text("×")
-                                                    .foregroundStyle(.secondary)
-                                                    .gridColumnAlignment(.center)
-                                                Text("\(set.weight.formatted()) lbs")
-                                                    .gridColumnAlignment(.leading)
-                                            }
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                        }
-                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right").font(.caption)
                                 }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(8)
-                                .background(Color.secondary.opacity(0.08))
-                                .clipShape(RoundedRectangle(cornerRadius: Theme.innerRadius))
                             }
+                            .buttonStyle(.plain)
+                        } else {
+                            Text("Unassigned history").font(.headline)
+                            Text("These older sets are preserved, but their original exercise is no longer linked.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        ForEach(group) { set in
+                            Button { editingSet = set } label: {
+                                HStack {
+                                    Text("\(set.reps) × \(set.weight.formatted()) lbs")
+                                        .foregroundStyle(.primary)
+                                    Spacer()
+                                    Text(set.date, style: .time).font(.caption).foregroundStyle(.secondary)
+                                    Image(systemName: "pencil").font(.caption)
+                                }
+                                .frame(minHeight: 44)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Edit set: \(set.reps) repetitions, \(set.weight.formatted()) pounds")
+                            .accessibilityIdentifier("HistorySetRow")
                         }
                     }
-                }
-                
-                if !filteredCardio.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("Cardio", systemImage: "figure.run")
-                            .font(.subheadline)
-                            .foregroundStyle(Theme.cardio)
-                        
-                        ForEach(filteredCardio) { log in
-                            HStack {
-                                Text(log.type)
-                                    .font(.system(.body, design: .rounded).weight(.medium))
-                                Spacer()
-                                Text(formatDuration(log.duration))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(8)
-                            .background(Color.secondary.opacity(0.08))
-                            .clipShape(RoundedRectangle(cornerRadius: Theme.innerRadius))
-                        }
-                    }
+                    .padding()
+                    .themeCard()
                 }
             }
         }
-        .padding()
-        // Background moved to parent container for coherence
-    }
-    
-    func formatDuration(_ duration: TimeInterval) -> String {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.hour, .minute, .second]
-        formatter.unitsStyle = .abbreviated
-        return formatter.string(from: duration) ?? ""
+        .sheet(item: $editingSet) { set in
+            WorkoutSetEditor(set: set) { reps, weight, date in
+                set.reps = reps
+                set.weight = weight
+                set.date = date
+                set.exercise?.refreshCachedLastLogDate()
+                do {
+                    try modelContext.save()
+                    return true
+                } catch {
+                    modelContext.rollback()
+                    modelContext.processPendingChanges()
+                    return false
+                }
+            }
+        }
     }
 }
-

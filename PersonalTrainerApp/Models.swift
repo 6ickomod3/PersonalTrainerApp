@@ -105,7 +105,7 @@ class Exercise {
     // List of instruction pointers
     var instructions: [String] = []
 
-    /// Cached most-recent set date. Updated by ExerciseDetailViewModel on add/delete/cleanup
+    /// Cached most-recent set date. Updated by ExerciseDetailViewModel on add/edit/delete
     /// and backfilled by DataMigration for stores written before this field existed.
     var cachedLastLogDate: Date?
 
@@ -128,35 +128,6 @@ class Exercise {
         self.instructions = instructions
     }
     
-    /// Cleanup old sets, keeping only the specified number of most recent dates
-    func cleanupOldSets(modelContext: ModelContext, maxDays: Int = 4) {
-        // Group sets by date
-        let grouped = Dictionary(grouping: sets) { set in
-            Calendar.current.startOfDay(for: set.date)
-        }
-        
-        // Get unique dates sorted (most recent first)
-        let uniqueDates = grouped.keys.sorted(by: >)
-        
-        // Keep only the specified number of most recent dates
-        let datesToKeep = Set(uniqueDates.prefix(maxDays))
-        
-        // Delete sets from older dates
-        let setsToDelete = sets.filter { set in
-            let setDate = Calendar.current.startOfDay(for: set.date)
-            return !datesToKeep.contains(setDate)
-        }
-        
-        // Remove directly from array instead of using modelContext.delete()
-        for set in setsToDelete {
-            sets.removeAll { $0.id == set.id }
-        }
-        
-        if !setsToDelete.isEmpty {
-            refreshCachedLastLogDate()
-            try? modelContext.save()
-        }
-    }
     /// Most recent set date. Reads from cache for O(1); falls back to computing
     /// from `sets` when the cache is nil (e.g. legacy stores pre-backfill).
     var lastLogDate: Date? {
@@ -164,7 +135,7 @@ class Exercise {
     }
 
     /// Recompute and persist `cachedLastLogDate` from the current `sets` array.
-    /// Call this whenever sets are added, deleted, or cleaned up.
+    /// Call this whenever sets are added, edited, or deleted.
     func refreshCachedLastLogDate() {
         cachedLastLogDate = sets.max(by: { $0.date < $1.date })?.date
     }

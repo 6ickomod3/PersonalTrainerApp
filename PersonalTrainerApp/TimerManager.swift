@@ -1,236 +1,271 @@
 import Foundation
+import Observation
 import UIKit
 import ActivityKit
 import AudioToolbox
 import UserNotifications
 
+@MainActor
 @Observable
-class TimerManager {
-    var secondsRemaining: Int
-    var isRunning: Bool = false
-    
-    // Live Activity
-    private var activity: Activity<TimerAttributes>?
-    
-    private var timer: Timer?
+final class TimerManager {
+    private(set) var secondsRemaining: Int
+    private(set) var isRunning = false
+    private(set) var isFinished = false
+
+    private var defaultDuration: Int
+    private var resetDuration: Int
+    private var currentDuration: Int
+    private var hasStarted = false
+    private var isApplicationActive = true
     private var endTime: Date?
-    
-    private let initialDuration: Int
-    private var userSetDuration: Int
-    
-    init(initialDuration: Int = 90) {
-        self.initialDuration = initialDuration
-        self.secondsRemaining = initialDuration
-        self.userSetDuration = initialDuration
-        
-        // Request permission immediately
-        requestNotificationPermission()
+
+    @ObservationIgnored private var timer: Timer?
+    @ObservationIgnored private var activity: Activity<TimerAttributes>?
+    @ObservationIgnored private var notificationIdentifier: String?
+    @ObservationIgnored private var notificationTask: Task<Void, Never>?
+    @ObservationIgnored private let now: () -> Date
+    @ObservationIgnored private let enablesExternalEffects: Bool
+    @ObservationIgnored private let automaticallyTicks: Bool
+
+    init(
+        initialDuration: Int = 90,
+        now: @escaping () -> Date = Date.init,
+        enablesExternalEffects: Bool = true,
+        automaticallyTicks: Bool = true
+    ) {
+        let duration = max(1, initialDuration)
+        defaultDuration = duration
+        resetDuration = duration
+        currentDuration = duration
+        secondsRemaining = duration
+        self.now = now
+        self.enablesExternalEffects = enablesExternalEffects
+        self.automaticallyTicks = automaticallyTicks
     }
-    
-    // MARK: - Timer Control
-    
+
+    /// A setting change applies immediately when idle and to the next rest when active.
+    func updateDefaultDuration(_ duration: Int) {
+        let duration = max(1, duration)
+        guard duration != defaultDuration else { return }
+        defaultDuration = duration
+        resetDuration = duration
+        if !hasStarted {
+            secondsRemaining = duration
+            currentDuration = duration
+            isFinished = false
+        }
+    }
+
     func start() {
         guard !isRunning else { return }
-        
-        // If we are starting fresh or resuming, calculate the target end time
-        let targetDate = Date().addingTimeInterval(TimeInterval(secondsRemaining))
-        endTime = targetDate
+        if isFinished || secondsRemaining <= 0 {
+            secondsRemaining = resetDuration
+            currentDuration = resetDuration
+        }
+        isFinished = false
+        hasStarted = true
         isRunning = true
-        
-        // Start Live Activity
-        startLiveActivity(endTime: targetDate)
-        
-        // Start local timer for UI updates
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            self?.tick()
-        }
+        let target = now().addingTimeInterval(TimeInterval(secondsRemaining))
+        endTime = target
+        scheduleNotification(at: target)
+        startLiveActivity(endTime: target)
+        startTicking()
     }
-    
+
     func pause() {
-        isRunning = false
-        timer?.invalidate()
-        timer = nil
-        endTime = nil
-        
-        // End Live Activity immediately
-        endLiveActivity()
+        guard isRunning else { return }
+        synchronize()
+        guard isRunning else { return }
+        stopCountdown()
     }
-    
+
     func reset() {
-        pause()
-        secondsRemaining = userSetDuration
+        stopCountdown()
+        hasStarted = false
+        isFinished = false
+        secondsRemaining = resetDuration
+        currentDuration = resetDuration
     }
-    
+
+    /// Used when erasing app settings; also clears adjustments made to the current rest.
+    func resetToDefaultDuration(_ duration: Int) {
+        defaultDuration = max(1, duration)
+        resetDuration = defaultDuration
+        reset()
+    }
+
     func addTime(_ seconds: Int) {
-        secondsRemaining += seconds
-        
-        // Update the user-set duration to remember this adjustment
-        userSetDuration += seconds
-        
-        // Prevent negative time
-        if secondsRemaining < 0 {
-            secondsRemaining = 0
+        if isRunning { synchronize() }
+        // Adjustments are remembered for the next rest, until Settings changes the default.
+        resetDuration = max(1, resetDuration + seconds)
+        secondsRemaining = max(0, secondsRemaining + seconds)
+        currentDuration = max(1, currentDuration + seconds)
+        if isFinished {
+            secondsRemaining = resetDuration
+            currentDuration = resetDuration
+            isFinished = false
+            hasStarted = false
         }
-        if userSetDuration < 0 {
-            userSetDuration = 0
+        guard isRunning else { return }
+        guard secondsRemaining > 0 else {
+            finish(playsAlarm: isApplicationActive)
+            return
         }
-        
-        // If running, extend the end time and update Live Activity
-        if isRunning, let currentEnd = endTime {
-            let newEnd = currentEnd.addingTimeInterval(TimeInterval(seconds))
-            endTime = newEnd
-            updateLiveActivity(endTime: newEnd)
+        if let previousEnd = endTime {
+            // Preserve the fractional second of the deadline when extending a rest.
+            let target = previousEnd.addingTimeInterval(TimeInterval(seconds))
+            endTime = target
+            scheduleNotification(at: target)
+            updateLiveActivity(endTime: target)
         }
     }
-    
-    // MARK: - Private Methods
-    
-    private func tick() {
-        guard let endTime = endTime else { return }
-        
-        let remaining = endTime.timeIntervalSinceNow
-        
-        if remaining <= 0 {
-            secondsRemaining = userSetDuration // Auto-reset to starting time
-            pause()
-            triggerAlarm()
+
+    /// Reconcile after suspension without replaying a late foreground alarm.
+    func setApplicationActive(_ active: Bool) {
+        guard active != isApplicationActive else { return }
+        isApplicationActive = active
+        if active {
+            synchronize(playsAlarm: false)
+            startTicking()
         } else {
-            // Round up to show "1" until it actually hits 0
+            stopTicking()
+        }
+    }
+
+    func synchronize(playsAlarm: Bool = true) {
+        guard isRunning, let endTime else { return }
+        let remaining = endTime.timeIntervalSince(now())
+        if remaining <= 0 {
+            finish(playsAlarm: playsAlarm && isApplicationActive)
+        } else {
             secondsRemaining = Int(ceil(remaining))
         }
     }
-    
-    private func triggerAlarm() {
-        // Haptic Feedback
-        triggerHapticFeedback()
-        
-        // Play Sound (if app is in foreground)
-        playForegroundSound()
-    }
-    
-    private func playForegroundSound() {
-        // ID 1005 is the standard alarm sound
-        // ID 1022 is "Calypso" (gentler)
-        AudioServicesPlaySystemSound(1022)
-    }
-    
-    private func triggerHapticFeedback() {
-        // Trigger strong haptic feedback for 3 seconds (like incoming call vibration)
-        let impact = UIImpactFeedbackGenerator(style: .heavy)
-        impact.prepare()
-        
-        let feedbackCount = 20
-        let interval = 0.15
-        
-        for i in 0..<feedbackCount {
-            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * interval) {
-                impact.impactOccurred()
-            }
+
+    private func finish(playsAlarm: Bool) {
+        stopCountdown()
+        secondsRemaining = 0
+        isFinished = true
+        hasStarted = false
+        if enablesExternalEffects && playsAlarm {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            AudioServicesPlaySystemSound(1022)
         }
     }
-    
-    // MARK: - Notifications
-    
-    func requestNotificationPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-            if let error = error {
-                print("Notification permission error: \(error.localizedDescription)")
-            }
-        }
-    }
-    
-    private func scheduleNotification(at date: Date) {
-        // Remove any existing timer notifications
+
+    private func stopCountdown() {
+        isRunning = false
+        endTime = nil
+        stopTicking()
         cancelNotification()
-        
-        let content = UNMutableNotificationContent()
-        content.title = "Rest Timer Finished"
-        content.body = "Time to get back to work!"
-        content.sound = .default
-        
-        let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
-        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-        
-        let request = UNNotificationRequest(identifier: "RestTimer", content: content, trigger: trigger)
-        
-        UNUserNotificationCenter.current().add(request)
+        endLiveActivity()
     }
-    
+
+    private func startTicking() {
+        guard automaticallyTicks, isRunning, isApplicationActive, timer == nil else { return }
+        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.synchronize() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
+    }
+
+    private func stopTicking() {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    // Notifications remain independent of Live Activity authorization and availability.
+    private func scheduleNotification(at date: Date) {
+        guard enablesExternalEffects else { return }
+        cancelNotification()
+        let identifier = "RestTimer-\(UUID().uuidString)"
+        notificationIdentifier = identifier
+        notificationTask = Task { [weak self] in
+            let center = UNUserNotificationCenter.current()
+            var settings = await center.notificationSettings()
+            if settings.authorizationStatus == .notDetermined {
+                _ = try? await center.requestAuthorization(options: [.alert, .sound])
+                settings = await center.notificationSettings()
+            }
+            guard let self, !Task.isCancelled,
+                  self.notificationIdentifier == identifier,
+                  settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
+            else { return }
+            let interval = date.timeIntervalSince(self.now())
+            guard interval > 0 else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "Rest complete"
+            content.body = "Ready for your next set."
+            content.sound = .default
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, interval), repeats: false)
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+            try? await center.add(request)
+            // Pause/reset may run while the notification center processes add.
+            if Task.isCancelled || self.notificationIdentifier != identifier {
+                center.removePendingNotificationRequests(withIdentifiers: [identifier])
+            }
+        }
+    }
+
     private func cancelNotification() {
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["RestTimer"])
+        notificationTask?.cancel()
+        notificationTask = nil
+        guard let identifier = notificationIdentifier else { return }
+        notificationIdentifier = nil
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
     }
-    
-    // MARK: - Live Activity
-    
+
     private func startLiveActivity(endTime: Date) {
-        // Also schedule the notification when we start the activity/timer
-        scheduleNotification(at: endTime)
-        
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
-        
-        let attributes = TimerAttributes(timerName: "Rest Timer")
-        let contentState = TimerAttributes.ContentState(endTime: endTime, duration: userSetDuration)
-        let content = ActivityContent(state: contentState, staleDate: endTime.addingTimeInterval(60))
-        
+        guard enablesExternalEffects, ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        let content = activityContent(endTime: endTime)
         do {
             activity = try Activity.request(
-                attributes: attributes,
+                attributes: TimerAttributes(timerName: "Rest Timer"),
                 content: content,
                 pushType: nil
             )
         } catch {
-            print("Error starting Live Activity: \(error.localizedDescription)")
+            print("Unable to start rest Live Activity: \(error.localizedDescription)")
         }
-    }
-    
-    private func updateLiveActivity(endTime: Date) {
-        // Update notification trigger
-        scheduleNotification(at: endTime)
-        
-        guard let activity = activity else { return }
-        
-        let contentState = TimerAttributes.ContentState(endTime: endTime, duration: userSetDuration)
-        let content = ActivityContent(state: contentState, staleDate: endTime.addingTimeInterval(60))
-        
-        Task {
-            await activity.update(content)
-        }
-    }
-    
-    private func endLiveActivity() {
-        // Cancel notification
-        cancelNotification()
-        
-        guard let activity = activity else { return }
-        
-        let contentState = TimerAttributes.ContentState(endTime: Date(), duration: userSetDuration)
-        let content = ActivityContent(state: contentState, staleDate: nil)
-        
-        Task {
-            await activity.end(content, dismissalPolicy: .immediate)
-            self.activity = nil
-        }
-    }
-    
-    // MARK: - Time Formatting
-    
-    var formattedTime: String {
-        let minutes = secondsRemaining / 60
-        let seconds = secondsRemaining % 60
-        return String(format: "%02d:%02d", minutes, seconds)
     }
 
-    /// Fraction of the current rest remaining (0...1). Drives the progress ring.
-    var progress: Double {
-        guard userSetDuration > 0 else { return 0 }
-        let raw = Double(secondsRemaining) / Double(userSetDuration)
-        return min(max(raw, 0), 1)
+    private func updateLiveActivity(endTime: Date) {
+        guard let activity else { return }
+        let content = activityContent(endTime: endTime)
+        Task { await activity.update(content) }
     }
-    
+
+    private func endLiveActivity() {
+        guard let endingActivity = activity else { return }
+        // Ending an old rest must not clear a newly started activity.
+        activity = nil
+        let content = activityContent(endTime: now())
+        Task { await endingActivity.end(content, dismissalPolicy: .immediate) }
+    }
+
+    private func activityContent(endTime: Date) -> ActivityContent<TimerAttributes.ContentState> {
+        ActivityContent(
+            state: TimerAttributes.ContentState(endTime: endTime, duration: currentDuration),
+            staleDate: endTime
+        )
+    }
+
+    var formattedTime: String {
+        String(format: "%02d:%02d", secondsRemaining / 60, secondsRemaining % 60)
+    }
+
+    var progress: Double {
+        min(max(Double(secondsRemaining) / Double(currentDuration), 0), 1)
+    }
+
     deinit {
         timer?.invalidate()
-        // Ensure activity ends if manager dies
-        if let activity = activity {
+        notificationTask?.cancel()
+        if let identifier = notificationIdentifier {
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
+        }
+        if let activity {
             Task { await activity.end(nil, dismissalPolicy: .immediate) }
         }
     }

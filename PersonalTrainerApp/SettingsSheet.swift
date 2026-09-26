@@ -3,128 +3,100 @@ import SwiftData
 
 struct SettingsSheet: View {
     @Binding var isPresented: Bool
-    @Bindable var settings: AppSettings
+    let settings: AppSettings
+    var onReset: () -> Void = { }
     @Environment(\.modelContext) private var modelContext
-
+    @State private var name: String
+    @State private var duration: Int
     @State private var showingResetAlert = false
+    @State private var errorMessage: String?
 
-    private var formattedDuration: String {
-        let m = settings.defaultTimerDuration / 60
-        let s = settings.defaultTimerDuration % 60
-        return String(format: "%d:%02d", m, s)
+    init(isPresented: Binding<Bool>, settings: AppSettings, onReset: @escaping () -> Void = { }) {
+        _isPresented = isPresented
+        self.settings = settings
+        self.onReset = onReset
+        _name = State(initialValue: settings.userName)
+        _duration = State(initialValue: min(max(settings.defaultTimerDuration, 15), 600))
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    HStack {
-                        Text("Name")
-                        Spacer()
-                        TextField("Optional", text: $settings.userName)
-                            .multilineTextAlignment(.trailing)
-                            .textInputAutocapitalization(.words)
-                            .submitLabel(.done)
-                    }
-                } header: {
-                    Text("Profile")
-                } footer: {
-                    Text("Used in the dashboard greeting. Leave blank to skip.")
+                Section("Profile") {
+                    TextField("Name (optional)", text: $name)
+                        .textInputAutocapitalization(.words)
                 }
-
                 Section {
-                    Stepper(
-                        value: $settings.defaultTimerDuration,
-                        in: 15...600,
-                        step: 15
-                    ) {
-                        HStack {
-                            Text("Default Duration")
-                            Spacer()
-                            Text(formattedDuration)
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
-                        }
+                    Stepper(value: $duration, in: 15...600, step: 15) {
+                        LabeledContent("Default rest", value: String(format: "%d:%02d", duration / 60, duration % 60))
                     }
+                    .accessibilityIdentifier("DefaultRestStepper")
                 } header: {
-                    Text("Rest Timer")
+                    Text("Rest timer")
                 } footer: {
-                    Text("Countdown shown when you tap Start. Adjusts in 15-second steps.")
+                    Text("Applies immediately when idle, or to the next rest when a countdown is in progress.")
                 }
-
                 Section {
-                    Stepper(
-                        value: $settings.maxStorageDays,
-                        in: 1...30,
-                        step: 1
-                    ) {
-                        HStack {
-                            Text("Keep Last")
-                            Spacer()
-                            Text("\(settings.maxStorageDays) day\(settings.maxStorageDays == 1 ? "" : "s")")
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
-                        }
-                    }
+                    Label("Keep all training history", systemImage: "checkmark.circle")
+                    Text("Workout records stay on this device until you delete them.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 } header: {
-                    Text("Data Storage")
+                    Text("Your data")
                 } footer: {
-                    Text("Older workout logs are automatically deleted.")
+                    Text("Previous cardio and warm-up/cool-down data remains saved while those features are being redesigned.")
                 }
-
                 Section {
-                    Button("Reset Settings to Defaults") {
-                        settings.userName = ""
-                        settings.maxStorageDays = 4
-                        settings.defaultTimerDuration = 90
+                    Button("Reset settings") {
+                        name = ""
+                        duration = 90
                     }
-                    .foregroundStyle(Theme.accent)
-
-                    Button("Reset All App Data", role: .destructive) {
-                        showingResetAlert = true
-                    }
-                } header: {
-                    Text("Danger Zone")
+                    Button("Erase all app data", role: .destructive) { showingResetAlert = true }
+                }
+                if let errorMessage {
+                    Section { Text(errorMessage).foregroundStyle(.red) }
                 }
             }
-            .navigationTitle("App Settings")
+            .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        // Clamp values to safe ranges before saving (defensive — Stepper already enforces)
-                        settings.defaultTimerDuration = max(15, min(600, settings.defaultTimerDuration))
-                        settings.maxStorageDays = max(1, min(30, settings.maxStorageDays))
-                        settings.userName = settings.userName.trimmingCharacters(in: .whitespacesAndNewlines)
-                        modelContext.safeSave()
-                        isPresented = false
-                    }
-                    .bold()
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { isPresented = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }
+                        .accessibilityIdentifier("SaveAppSettingsButton")
                 }
             }
-            .alert("Reset All Data?", isPresented: $showingResetAlert) {
+            .confirmationDialog("Erase all app data?", isPresented: $showingResetAlert, titleVisibility: .visible) {
+                Button("Erase All Data", role: .destructive) { resetData() }
                 Button("Cancel", role: .cancel) { }
-                Button("Reset", role: .destructive) {
-                    resetData()
-                    isPresented = false
-                }
             } message: {
-                Text("This will permanently delete all logs, exercises, and muscle groups. This action cannot be undone.")
+                Text("This permanently deletes all exercises, workout history, settings, and saved cardio and guide data. Default strength exercises will be restored. This cannot be undone.")
             }
+        }
+    }
+
+    private func save() {
+        settings.userName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        settings.defaultTimerDuration = duration
+        do {
+            try modelContext.save()
+            isPresented = false
+        } catch {
+            modelContext.rollback()
+            modelContext.processPendingChanges()
+            errorMessage = "Couldn't save your settings. Please try again."
         }
     }
 
     private func resetData() {
         do {
-            try modelContext.delete(model: Exercise.self)
-            try modelContext.delete(model: MuscleGroup.self)
-            try modelContext.delete(model: CardioLog.self)
-            try modelContext.delete(model: WorkoutSet.self)
-
-            SeedHelper.seedMuscleGroups(context: modelContext)
-            SeedHelper.seedExercises(context: modelContext)
+            try TrainingStore.resetAll(context: modelContext)
+            onReset()
+            isPresented = false
         } catch {
-            print("Failed to reset data: \(error)")
+            errorMessage = "Couldn't erase your data. Please try again."
         }
     }
 }

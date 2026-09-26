@@ -3,242 +3,234 @@ import SwiftData
 
 struct ExerciseDetailView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var appSettings: [AppSettings]
-
-    // We keep exercise here to initialize the VM
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let exercise: Exercise
-
-    // ViewModel is optional because it depends on modelContext which is only available in body/onAppear
     @State private var viewModel: ExerciseDetailViewModel?
     @State private var showingSettingsSheet = false
     @State private var setToDelete: WorkoutSet?
+    @State private var setToEdit: WorkoutSet?
+    @State private var showingOlderSets = false
+    @State private var repeatMessage: String?
     @State private var addSetCount = 0
 
-    var settings: AppSettings {
-        appSettings.first ?? AppSettings()
+    var body: some View {
+        if exercise.isDeleted || exercise.modelContext == nil {
+            ContentUnavailableView("Exercise Removed", systemImage: "dumbbell", description: Text("Return to Train to choose another exercise."))
+                .navigationTitle("Exercise")
+        } else {
+            exerciseContent
+        }
     }
 
-    init(exercise: Exercise) {
-        self.exercise = exercise
-    }
-    
-    var body: some View {
+    private var exerciseContent: some View {
         Group {
             if let vm = viewModel {
-                VStack(spacing: 20) {
-                    Form {
-                        // Suggested Volume Section
-                        if let lastVolume = vm.lastTrainingVolume, let suggested = vm.suggestedVolume {
-                            Section(header: Text("Training Progress")) {
+                exerciseForm(vm)
+            } else {
+                ProgressView()
+                    .onAppear { viewModel = ExerciseDetailViewModel(exercise: exercise, modelContext: modelContext) }
+            }
+        }
+        .navigationTitle(exercise.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showingSettingsSheet = true } label: {
+                    Label("Exercise settings", systemImage: "gearshape")
+                }
+                .accessibilityIdentifier("ExerciseSettingsButton")
+            }
+        }
+        .sheet(isPresented: $showingSettingsSheet, onDismiss: {
+            viewModel?.normalizeSelection()
+        }) {
+            ExerciseSettingsSheet(isPresented: $showingSettingsSheet, exercise: exercise)
+        }
+        .sensoryFeedback(.success, trigger: addSetCount)
+    }
+
+    private func exerciseForm(_ vm: ExerciseDetailViewModel) -> some View {
+        ScrollViewReader { proxy in
+            Form {
+                Section {
+                    Stepper("Reps: \(vm.reps)", value: Bindable(vm).reps, in: 1...50)
+                        .accessibilityIdentifier("RepsStepper")
+                    Picker("Weight (lbs)", selection: Bindable(vm).weight) {
+                        ForEach(exercise.weightConfiguration.values, id: \.self) { weight in
+                            Text(weight.formatted(.number.precision(.fractionLength(0...3)))).tag(weight)
+                        }
+                    }
+                    .accessibilityIdentifier("WeightPicker")
+                    if let message = exercise.weightConfiguration.validationMessage {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Using default weight choices. \(message)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Button("Review Weight Settings") { showingSettingsSheet = true }
+                        }
+                    }
+                    Button {
+                        if vm.addSet() {
+                            repeatMessage = nil
+                            addSetCount += 1
+                        }
+                    } label: {
+                        Text("Log Set")
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity, minHeight: 32)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("LogSetButton")
+                    if vm.canUndoLastAddedSet {
+                        HStack {
+                            Label("Set saved", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(Theme.success)
+                            Spacer()
+                            Button("Undo") { vm.undoLastAddedSet() }
+                                .accessibilityIdentifier("UndoLastSetButton")
+                        }
+                        .font(.subheadline)
+                    }
+                    if let repeatMessage {
+                        Text(repeatMessage).font(.caption).foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("Log a set")
+                } footer: {
+                    if let previous = vm.lastTrainingVolume {
+                        Text("Previous training: \(previous.formatted(.number.precision(.fractionLength(0...1)))) lbs volume. Today: \(vm.todaysVolume.formatted(.number.precision(.fractionLength(0...1)))) lbs.")
+                    }
+                }
+                .id("composer")
+
+                Section {
+                    let todaysSets = exercise.sets.filter { Calendar.current.isDateInToday($0.date) }.sorted { $0.date > $1.date }
+                    if todaysSets.isEmpty {
+                        Text("Your sets will appear here after you log them.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(todaysSets) { set in
+                            setRow(set, vm: vm, proxy: proxy)
+                        }
+                    }
+                } header: {
+                    Text("Today")
+                } footer: {
+                    if vm.todaysVolume > 0 { Text("Total volume: \(vm.todaysVolume.formatted(.number.precision(.fractionLength(0...1)))) lbs (reps × weight)") }
+                }
+
+                Section {
+                    NavigationLink {
+                        ExerciseAnalyticsView(exercise: exercise)
+                    } label: {
+                        Label("Progress", systemImage: "chart.xyaxis.line")
+                    }
+                    .accessibilityIdentifier("ExerciseProgressLink")
+                    NavigationLink {
+                        ExerciseInstructionView(exercise: exercise)
+                    } label: {
+                        Label("Instructions", systemImage: "info.circle")
+                    }
+                    .accessibilityIdentifier("ExerciseInstructionsLink")
+                }
+
+                let previousDays = vm.setsByDate.filter { !Calendar.current.isDateInToday($0.date) }
+                if !previousDays.isEmpty {
+                    Section {
+                        DisclosureGroup("Previous sets", isExpanded: $showingOlderSets) {
+                            ForEach(previousDays, id: \.date) { day in
                                 VStack(alignment: .leading, spacing: 12) {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text("Last Training Volume")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                            Text(String(format: "%.0f", lastVolume) + " lbs")
-                                                .font(.headline)
-                                                .foregroundStyle(.primary)
-                                        }
-                                        Spacer()
-                                    }
-                                    
-                                    Divider()
-                                    
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text("Suggested Volume (\(String(format: "%.0f", exercise.volumeImprovementPercent))% increase)")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                            Text(String(format: "%.0f", suggested) + " lbs")
-                                                .font(.headline)
-                                                .foregroundStyle(Theme.dataHighlight)
-                                        }
-                                        Spacer()
-                                    }
-                                    
-                                    Divider()
-                                    
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text("Volume Today")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                            Text(String(format: "%.0f", vm.todaysVolume) + " lbs")
-                                                .font(.headline)
-                                                .foregroundStyle(.primary)
-                                        }
-                                        Spacer()
+                                    Text(day.date, format: .dateTime.month(.abbreviated).day().year())
+                                        .font(.subheadline.weight(.semibold))
+                                    ForEach(day.sets) { set in
+                                        setRow(set, vm: vm, proxy: proxy)
+                                        if set.id != day.sets.last?.id { Divider() }
                                     }
                                 }
                                 .padding(.vertical, 8)
                             }
                         }
-                        
-                        Section(header: Text("Log a set")) {
-                            HStack(spacing: 0) {
-                                // Left Column: Reps
-                                VStack(spacing: 5) {
-                                    Text("Reps: \(vm.reps)")
-                                        .font(.headline)
-                                    Picker("Reps", selection: Bindable(vm).reps) {
-                                        ForEach(0...50, id: \.self) { rep in
-                                            Text("\(rep)").tag(rep)
-                                        }
-                                    }
-                                    .pickerStyle(.wheel)
-                                    .frame(height: 120)
-                                }
-                                .frame(maxWidth: .infinity)
-
-                                Divider()
-
-                                // Right Column: Weight
-                                VStack(spacing: 5) {
-                                    Text("lbs: \(vm.weight, specifier: "%.1f")")
-                                        .font(.headline)
-                                    Picker("Weight", selection: Bindable(vm).weight) {
-                                        ForEach(Array(stride(from: exercise.weightMin, through: exercise.weightMax, by: exercise.weightStep)), id: \.self) { w in
-                                            Text(String(format: "%.1f", w)).tag(w)
-                                        }
-                                    }
-                                    .pickerStyle(.wheel)
-                                    .frame(height: 120)
-                                }
-                                .frame(maxWidth: .infinity)
-                            }
-
-                            Button(action: {
-                                vm.addSet()
-                                addSetCount += 1
-                            }) {
-                                Text("Add Set")
-                                    .frame(maxWidth: .infinity)
-                                    .bold()
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .listRowInsets(EdgeInsets())
-                            .padding()
-                        }
-                        
-                        if vm.setsByDate.isEmpty {
-                            Section(header: Text("History")) {
-                                Text("No sets logged yet.")
-                                    .foregroundStyle(.secondary)
-                            }
-                        } else {
-                            ForEach(vm.setsByDate, id: \.date) { dayData in
-                                Section {
-                                    ForEach(dayData.sets, id: \.id) { set in
-                                        HStack {
-                                            VStack(alignment: .leading, spacing: 4) {
-                                                HStack(spacing: 8) {
-                                                    Text("\(set.reps) × \(set.weight, specifier: "%.1f")")
-                                                        .font(.body)
-                                                        .fontWeight(.medium)
-                                                    Text("= \(set.volume, specifier: "%.0f") lbs")
-                                                        .font(.caption)
-                                                        .foregroundStyle(.secondary)
-                                                }
-                                                Text(set.date, style: .time)
-                                                    .font(.caption2)
-                                                    .foregroundStyle(.secondary)
-                                            }
-                                            Spacer()
-                                        }
-                                        .contentShape(Rectangle())
-                                        .onTapGesture {
-                                            withAnimation {
-                                                vm.prefillFromSet(set)
-                                            }
-                                        }
-                                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                            Button(role: .destructive) {
-                                                setToDelete = set
-                                            } label: {
-                                                Label("Delete", systemImage: "trash")
-                                            }
-                                        }
-                                    }
-                                } header: {
-                                    HStack(alignment: .firstTextBaseline) {
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(dayData.date, style: .date)
-                                                .font(.subheadline.bold())
-                                                .foregroundStyle(.primary)
-                                            Text("\(dayData.sets.count) set\(dayData.sets.count == 1 ? "" : "s")")
-                                                .font(.caption2)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                        Spacer()
-                                        VStack(alignment: .trailing, spacing: 2) {
-                                            Text("Total Volume")
-                                                .font(.caption2)
-                                                .foregroundStyle(.secondary)
-                                            Text("\(dayData.totalVolume, specifier: "%.0f") lbs")
-                                                .font(.subheadline.bold())
-                                                .foregroundStyle(Theme.dataHighlight)
-                                        }
-                                    }
-                                    .textCase(nil)
-                                }
-                            }
-                        }
-                        
                     }
                 }
-                .navigationTitle(exercise.name)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        HStack {
-                            NavigationLink(destination: ExerciseInstructionView(exercise: exercise)) {
-                                Image(systemName: "info.circle")
-                            }
-                            .accessibilityLabel("Exercise instructions")
-
-                            Button(action: { showingSettingsSheet = true }) {
-                                Label("Settings", systemImage: "gear")
-                            }
-                            .accessibilityLabel("Exercise settings")
-                        }
-                    }
+            }
+            .sheet(item: $setToEdit) { set in
+                WorkoutSetEditor(set: set) { reps, weight, date in
+                    let success = vm.updateSet(set, reps: reps, weight: weight, date: date)
+                    if !success { vm.errorMessage = nil } // The editor displays the save error while open.
+                    return success
                 }
-                .onAppear {
-                    vm.cleanupOldSets(maxDays: settings.maxStorageDays)
+            }
+            .alert("Delete Set?", isPresented: Binding(
+                get: { setToDelete != nil },
+                set: { if !$0 { setToDelete = nil } }
+            )) {
+                Button("Cancel", role: .cancel) { setToDelete = nil }
+                Button("Delete", role: .destructive) {
+                    if let set = setToDelete { vm.deleteSet(set) }
+                    setToDelete = nil
                 }
-                .sensoryFeedback(.success, trigger: addSetCount)
-                .sheet(isPresented: $showingSettingsSheet) {
-                    ExerciseSettingsSheet(isPresented: $showingSettingsSheet, exercise: exercise)
-                }
-                .alert("Delete Set?", isPresented: Binding(
-                    get: { setToDelete != nil },
-                    set: { if !$0 { setToDelete = nil } }
-                )) {
-                    Button("Cancel", role: .cancel) { }
-                    Button("Delete", role: .destructive) {
-                        if let set = setToDelete {
-                            vm.deleteSet(set)
-                            setToDelete = nil
-                        }
-                    }
-                } message: {
-                    Text("Are you sure you want to delete this log?")
-                }
-            } else {
-                ProgressView()
-                    .onAppear {
-                        // Initialize ViewModel when view appears and context is available
-                        viewModel = ExerciseDetailViewModel(exercise: exercise, modelContext: modelContext)
-                    }
+            } message: {
+                Text("This removes the selected set from your history.")
+            }
+            .alert("Could Not Save", isPresented: Binding(
+                get: { vm.errorMessage != nil },
+                set: { if !$0 { vm.errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { vm.errorMessage = nil }
+            } message: {
+                Text(vm.errorMessage ?? "Please try again.")
             }
         }
     }
-}
 
+    private func setRow(_ set: WorkoutSet, vm: ExerciseDetailViewModel, proxy: ScrollViewProxy) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    setValue(set)
+                    Spacer()
+                    Text(set.date, style: .time).font(.caption).foregroundStyle(.secondary)
+                }
+                VStack(alignment: .leading) {
+                    setValue(set)
+                    Text(set.date, style: .time).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            let actionLayout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
+                : AnyLayout(HStackLayout(spacing: 20))
+            actionLayout {
+                Button("Repeat", systemImage: "arrow.counterclockwise") {
+                    vm.prefillFromSet(set)
+                    repeatMessage = vm.weight == set.weight && vm.reps == set.reps
+                        ? "Ready to repeat. Tap Log Set to save it."
+                        : "Ready to repeat using your current rep and weight choices. Tap Log Set to save it."
+                    withAnimation { proxy.scrollTo("composer", anchor: .top) }
+                }
+                .accessibilityIdentifier("RepeatSetButton")
+                .frame(minHeight: 44)
+                Button("Edit", systemImage: "pencil") { setToEdit = set }
+                    .accessibilityIdentifier("EditSetButton")
+                    .frame(minHeight: 44)
+                Button("Delete", systemImage: "trash", role: .destructive) { setToDelete = set }
+                    .accessibilityIdentifier("DeleteSetButton")
+                    .frame(minHeight: 44)
+            }
+            .font(.caption)
+            .buttonStyle(.borderless)
+            .frame(minHeight: 44)
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private func setValue(_ set: WorkoutSet) -> some View {
+        Text("\(set.reps) reps × \(set.weight.formatted(.number.precision(.fractionLength(0...3)))) lbs")
+            .font(.body.weight(.medium))
+    }
+}
 
 #Preview {
     NavigationStack {
         ExerciseDetailView(exercise: Exercise.sampleExercises[0])
     }
 }
-

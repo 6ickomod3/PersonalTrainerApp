@@ -1,178 +1,126 @@
 import SwiftUI
+import SwiftData
 
 struct ExerciseInstructionView: View {
-    @Bindable var exercise: Exercise
-    @State private var videoURLText: String = ""
-    @State private var isEditingURL = false
-    
-    // Focus State for instructions
-    @FocusState private var focusedInstructionIndex: Int?
-    
-    var videoID: String? {
-        guard let url = exercise.videoUrl, !url.isEmpty else { return nil }
-        return extractYouTubeID(from: url)
-    }
-    
+    let exercise: Exercise
+    @State private var isEditing = false
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // Analytics Section
-                ExerciseAnalyticsView(exercise: exercise)
-                
-                // Video Section
-                if let videoID = videoID {
+        List {
+            if let url = exercise.videoUrl, let videoID = extractYouTubeID(from: url) {
+                Section("Video") {
                     YouTubeView(videoID: videoID)
                         .frame(height: 220)
-                        .cornerRadius(Theme.innerRadius)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.innerRadius))
+                }
+            }
+            Section("Instructions") {
+                if exercise.instructions.isEmpty {
+                    Text("Add your setup and technique notes for this exercise.")
+                        .foregroundStyle(.secondary)
                 } else {
-                    RoundedRectangle(cornerRadius: Theme.innerRadius)
-                        .fill(Color.secondary.opacity(0.08))
-                        .frame(height: 220)
-                        .overlay(
-                            VStack(spacing: 8) {
-                                Image(systemName: "video.slash")
-                                    .font(.largeTitle)
-                                    .foregroundStyle(.secondary)
-                                Text("No video available")
-                                    .foregroundStyle(.secondary)
-                            }
-                        )
-                }
-                
-                // URL Input (only visible when editing or if empty)
-                if isEditingURL || exercise.videoUrl == nil || exercise.videoUrl?.isEmpty == true {
-                    HStack {
-                        TextField("YouTube URL", text: $videoURLText)
-                            .textFieldStyle(.roundedBorder)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                        
-                        Button("Save") {
-                            let trimmed = videoURLText.trimmingCharacters(in: .whitespacesAndNewlines)
-                            exercise.videoUrl = trimmed
-                            isEditingURL = false
-                        }
-                        .disabled(videoURLText.isEmpty)
-                    }
-                }
-                
-                if !isEditingURL && exercise.videoUrl != nil && exercise.videoUrl?.isEmpty == false {
-                    Button("Edit Video URL") {
-                        videoURLText = exercise.videoUrl ?? ""
-                        isEditingURL = true
-                    }
-                    .font(.caption)
-                }
-                
-                // Title
-                Text(exercise.name)
-                    .font(.title)
-                    .bold()
-                
-                // Instructions List
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("Instructions")
-                            .font(.headline)
-                        Spacer()
-                        Button(action: {
-                            // Add new empty instruction and focus it
-                            exercise.instructions.append("")
-                            focusedInstructionIndex = exercise.instructions.count - 1
-                        }) {
-                            Label("Add", systemImage: "plus.circle")
-                                .font(.subheadline)
-                        }
-                    }
-                    
-                    if exercise.instructions.isEmpty {
-                        Text("No instructions added yet.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .padding(.vertical, 8)
-                    } else {
-                        ForEach(Array(exercise.instructions.enumerated()), id: \.offset) { index, instruction in
-                            HStack(alignment: .top, spacing: 12) {
-                                Text("\(index + 1).")
-                                    .font(.body.bold())
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 20, alignment: .trailing)
-                                
-                                TextField("Enter instruction...", text: Binding(
-                                    get: {
-                                        guard index < exercise.instructions.count else { return "" }
-                                        return exercise.instructions[index]
-                                    },
-                                    set: { newValue in
-                                        if index < exercise.instructions.count {
-                                            exercise.instructions[index] = newValue
-                                        }
-                                    }
-                                ), axis: .vertical)
-                                .font(.body)
-                                .focused($focusedInstructionIndex, equals: index)
-                                .submitLabel(.done)
-                                
-                                Button(action: {
-                                    if index < exercise.instructions.count {
-                                        exercise.instructions.remove(at: index)
-                                        // Reset focus if needed
-                                        focusedInstructionIndex = nil
-                                    }
-                                }) {
-                                    Image(systemName: "trash")
-                                        .foregroundStyle(Theme.accent.opacity(0.6))
-                                        .font(.caption)
-                                }
-                                .buttonStyle(.borderless)
-                                .padding(.top, 4)
-                            }
-                            .padding(.vertical, 4)
-                            .id(index) // Important for scrolling if we added that logic
-                            
-                            Divider()
+                    ForEach(Array(exercise.instructions.enumerated()), id: \.offset) { index, instruction in
+                        HStack(alignment: .top, spacing: 12) {
+                            Text("\(index + 1).")
+                                .foregroundStyle(.secondary)
+                            Text(instruction)
                         }
                     }
                 }
             }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .navigationTitle("Instructions")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if focusedInstructionIndex != nil {
-                ToolbarItem(placement: .keyboard) {
-                    HStack {
-                        Spacer()
-                        Button("Done") {
-                            focusedInstructionIndex = nil
-                        }
-                    }
-                }
-            }
-        }
-        .onAppear {
-            if let url = exercise.videoUrl {
-                videoURLText = url
-            }
-        }
+        .toolbar { Button("Edit") { isEditing = true } }
+        .sheet(isPresented: $isEditing) { ExerciseInstructionEditor(exercise: exercise) }
     }
-    
+
     func extractYouTubeID(from url: String) -> String? {
-        // Simple regex or string manipulation for extracting ID
-        // Supports: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID, youtube.com/shorts/ID
-        let pattern = #"(?<=v=|v\/|vi=|vi\/|youtu.be\/|embed\/|shorts\/)([a-zA-Z0-9_-]{11})"#
-        
-        if let range = url.range(of: pattern, options: .regularExpression) {
-            return String(url[range])
-        }
-        return nil
+        youtubeVideoID(from: url)
     }
 }
 
-#Preview {
-    NavigationStack {
-        ExerciseInstructionView(exercise: Exercise.sampleExercises[0])
+private func youtubeVideoID(from value: String) -> String? {
+    guard let components = URLComponents(string: value),
+          ["https", "http"].contains(components.scheme?.lowercased() ?? ""),
+          let host = components.host?.lowercased() else { return nil }
+    let candidate: String?
+    if host == "youtu.be" || host == "www.youtu.be" {
+        candidate = components.path.split(separator: "/").first.map(String.init)
+    } else if ["youtube.com", "www.youtube.com", "m.youtube.com"].contains(host) {
+        if let id = components.queryItems?.first(where: { $0.name == "v" })?.value {
+            candidate = id
+        } else {
+            let path = components.path.split(separator: "/")
+            candidate = path.count == 2 && ["embed", "shorts", "live"].contains(String(path[0])) ? String(path[1]) : nil
+        }
+    } else {
+        candidate = nil
+    }
+    guard let candidate, candidate.range(of: #"^[a-zA-Z0-9_-]{11}$"#, options: .regularExpression) != nil else { return nil }
+    return candidate
+}
+
+private struct ExerciseInstructionEditor: View {
+    let exercise: Exercise
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @State private var videoURL: String
+    @State private var instructions: [String]
+    @State private var errorMessage: String?
+
+    init(exercise: Exercise) {
+        self.exercise = exercise
+        _videoURL = State(initialValue: exercise.videoUrl ?? "")
+        _instructions = State(initialValue: exercise.instructions)
+    }
+
+    private var trimmedURL: String { videoURL.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var invalidURL: Bool {
+        !trimmedURL.isEmpty && youtubeVideoID(from: trimmedURL) == nil && trimmedURL != exercise.videoUrl
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Video (optional)") {
+                    TextField("YouTube URL", text: $videoURL)
+                        .keyboardType(.URL)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                    if invalidURL { Text("Enter a valid YouTube video link or leave this empty.").font(.caption).foregroundStyle(.red) }
+                }
+                Section("Instructions") {
+                    ForEach(instructions.indices, id: \.self) { index in
+                        TextField("Instruction \(index + 1)", text: $instructions[index], axis: .vertical)
+                    }
+                    .onDelete { instructions.remove(atOffsets: $0) }
+                    Button("Add Instruction", systemImage: "plus") { instructions.append("") }
+                }
+                if let errorMessage { Section { Text(errorMessage).foregroundStyle(.red) } }
+            }
+            .navigationTitle("Edit Instructions")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }.disabled(invalidURL)
+                }
+            }
+        }
+    }
+
+    private func save() {
+        exercise.videoUrl = trimmedURL.isEmpty ? nil : trimmedURL
+        exercise.instructions = instructions.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        exercise.lastModifiedDate = Date()
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            modelContext.processPendingChanges()
+            errorMessage = "Your instructions could not be saved. Please try again."
+        }
     }
 }

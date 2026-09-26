@@ -1,163 +1,159 @@
 import SwiftUI
 
 struct TimerView: View {
-    @State var timerManager: TimerManager
-    @State private var isExpanded: Bool = false
-    @State private var dragOffset: CGFloat = 0
-    @State private var startPauseToggleCount: Int = 0
-    var defaultTimerDuration: Int = 90
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var timerManager: TimerManager
+    @State private var showingControls = false
+    var defaultTimerDuration: Int
 
     init(defaultTimerDuration: Int = 90) {
+        self.init(timerManager: TimerManager(initialDuration: defaultTimerDuration), defaultTimerDuration: defaultTimerDuration)
+    }
+
+    init(timerManager: TimerManager, defaultTimerDuration: Int) {
         self.defaultTimerDuration = defaultTimerDuration
-        _timerManager = State(initialValue: TimerManager(initialDuration: defaultTimerDuration))
+        _timerManager = State(initialValue: timerManager)
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            if isExpanded {
-                expandedView
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-            } else {
-                minimizedView
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+            Divider()
+            ViewThatFits(in: .horizontal) {
+                if !dynamicTypeSize.isAccessibilitySize { timerRow(showsButtonTitle: true) }
+                timerRow(showsButtonTitle: false)
             }
-        }
-        .sensoryFeedback(.success, trigger: startPauseToggleCount)
-    }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
 
-    // MARK: - Expanded View
-
-    private var expandedView: some View {
-        VStack(spacing: 0) {
-            VStack(spacing: 16) {
-                // Header (chevron tap-to-collapse)
-                Button(action: collapse) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "timer")
-                            .font(.system(size: 14))
-                            .foregroundStyle(.secondary)
-
-                        Text("Rest Timer")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.secondary)
-
-                        Spacer()
-
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                    .contentShape(Rectangle())
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Collapse rest timer")
-
+            if showingControls {
                 Divider()
-                    .padding(.horizontal, 16)
-
-                // Ring + countdown
-                ZStack {
-                    Circle()
-                        .stroke(Color.gray.opacity(0.18), lineWidth: 8)
-
-                    Circle()
-                        .trim(from: 0, to: timerManager.progress)
-                        .stroke(
-                            Theme.timerActive,
-                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                        )
-                        .rotationEffect(.degrees(-90))
-                        .animation(.linear(duration: 0.1), value: timerManager.progress)
-
-                    Text(timerManager.formattedTime)
-                        .font(.system(size: 56, weight: .semibold, design: .default))
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                        .foregroundStyle(Theme.timerActive)
-                }
-                .frame(width: 200, height: 200)
-                .padding(.top, 4)
-
-                // Controls
-                HStack(spacing: 12) {
-                    secondaryButton("–15s", action: { timerManager.addTime(-15) })
-                        .accessibilityLabel("Subtract 15 seconds")
-
-                    secondaryButton("+15s", action: { timerManager.addTime(15) })
-                        .accessibilityLabel("Add 15 seconds")
-
-                    Spacer()
-
-                    secondaryButton("Reset", action: { timerManager.reset() })
-
-                    primaryButton(timerManager.isRunning ? "Pause" : "Start", action: toggleStartPause)
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 40)
+                expandedControls
             }
-            .background(.regularMaterial)
-            .clipShape(UnevenRoundedRectangle(topLeadingRadius: 20, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 20))
-            .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: -2)
-            .ignoresSafeArea(edges: .bottom)
         }
-        .padding(.horizontal)
-        .gesture(
-            DragGesture()
-                .onChanged { value in
-                    dragOffset = value.translation.height
-                }
-                .onEnded { value in
-                    if value.translation.height > 50 {
-                        collapse()
-                    }
-                    dragOffset = 0
-                }
-        )
+        .background {
+            // The background receives only taps outside the foreground controls.
+            Button(action: toggleControls) {
+                Color(.systemBackground).contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityHidden(true)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("RestTimerBar")
+        .onAppear {
+            timerManager.updateDefaultDuration(defaultTimerDuration)
+            timerManager.setApplicationActive(scenePhase == .active)
+        }
+        .onChange(of: defaultTimerDuration) { _, duration in
+            timerManager.updateDefaultDuration(duration)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            timerManager.setApplicationActive(phase == .active)
+        }
     }
 
-    // MARK: - Minimized View
-
-    private var minimizedView: some View {
-        VStack(spacing: 0) {
-            // Progress bar at top edge — confirms an active timer
-            // without taking layout space in the collapsed state.
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.15))
-                    Rectangle()
-                        .fill(Theme.timerActive)
-                        .frame(width: geo.size.width * timerManager.progress)
-                        .animation(.linear(duration: 0.1), value: timerManager.progress)
-                }
+    private func timerRow(showsButtonTitle: Bool) -> some View {
+        HStack(spacing: 4) {
+            countdown
+                .allowsHitTesting(false)
+            Button(action: toggleControls) {
+                Color.clear
+                    .frame(minWidth: 44, maxWidth: .infinity)
+                    .frame(height: 44)
+                    .contentShape(Rectangle())
             }
-            .frame(height: 5)
+            .buttonStyle(.plain)
+            .accessibilityLabel(showingControls ? "Collapse rest timer controls" : "Expand rest timer controls")
+            .accessibilityIdentifier("restTimerToggleArea")
+            startPauseButton(showsTitle: showsButtonTitle)
+            controlsButton
+        }
+    }
 
+    private var countdown: some View {
+        HStack(spacing: 8) {
+            Image(systemName: timerManager.isFinished ? "checkmark.circle" : "timer")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Theme.timerActive)
+                .accessibilityHidden(true)
             Text(timerManager.formattedTime)
-                .font(.system(size: 20, weight: .semibold, design: .default))
+                .font(.body.weight(.semibold))
                 .monospacedDigit()
                 .foregroundStyle(Theme.timerActive)
-                .frame(maxWidth: .infinity)
-                .frame(height: 48)
-                .padding(.bottom, 20)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
         }
-        .background(.regularMaterial)
-        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 20, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 20))
-        .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: -2)
-        .ignoresSafeArea(edges: .bottom)
-        .padding(.horizontal)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.3)) {
-                isExpanded = true
-            }
-        }
-        .contentTransition(.numericText())
+        .layoutPriority(1)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(timerManager.isFinished ? "Rest complete" : "Rest timer")
+        .accessibilityValue(timerManager.formattedTime)
     }
 
-    // MARK: - Helpers
+    private func startPauseButton(showsTitle: Bool) -> some View {
+        Button(action: toggleStartPause) {
+            HStack(spacing: 6) {
+                Image(systemName: timerManager.isRunning ? "pause.fill" : "play.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                if showsTitle {
+                    Text(timerManager.isRunning ? "Pause" : "Start")
+                        .font(.body.weight(.semibold))
+                }
+            }
+                .padding(.horizontal, showsTitle ? 12 : 0)
+                .frame(minWidth: 44, minHeight: 44)
+                .foregroundStyle(.white)
+                .background(Theme.primaryAction, in: RoundedRectangle(cornerRadius: 12))
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(timerManager.isRunning ? "Pause" : "Start")
+        .accessibilityIdentifier("restTimerStartPause")
+    }
+
+    private var controlsButton: some View {
+        Button(action: toggleControls) {
+            Image(systemName: showingControls ? "chevron.down" : "chevron.up")
+                .font(.system(size: 18, weight: .semibold))
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(showingControls ? "Collapse rest timer controls" : "Expand rest timer controls")
+        .accessibilityIdentifier("restTimerExpand")
+    }
+
+    private var expandedControls: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 12))
+        return layout {
+            adjustmentButton("−15s", accessibilityLabel: "Subtract 15 seconds") { timerManager.addTime(-15) }
+            adjustmentButton("+15s", accessibilityLabel: "Add 15 seconds") { timerManager.addTime(15) }
+            adjustmentButton("Reset", accessibilityLabel: "Reset timer") { timerManager.reset() }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("RestTimerControls")
+    }
+
+    private func adjustmentButton(_ title: String, accessibilityLabel: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.body.weight(.medium))
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Theme.primaryAction)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private func toggleControls() {
+        withAnimation(.easeInOut(duration: 0.2)) { showingControls.toggle() }
+    }
 
     private func toggleStartPause() {
         if timerManager.isRunning {
@@ -165,43 +161,12 @@ struct TimerView: View {
         } else {
             timerManager.start()
         }
-        startPauseToggleCount += 1
-    }
-
-    private func collapse() {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            isExpanded = false
-        }
-    }
-
-    private func primaryButton(_ label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(label)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(minWidth: 84, minHeight: 44)
-                .background(Capsule().fill(Theme.primaryAction))
-        }
-    }
-
-    private func secondaryButton(_ label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(label)
-                .font(.body)
-                .foregroundStyle(Theme.primaryAction)
-                .frame(minWidth: 44, minHeight: 44)
-        }
     }
 }
 
 #Preview {
-    VStack {
-        Spacer()
-        Text("Scroll content above")
-        Spacer()
-    }
-    .safeAreaInset(edge: .bottom) {
+    VStack(spacing: 0) {
+        ScrollView { Text("Workout content").frame(maxWidth: .infinity) }
         TimerView()
     }
-    .background(Color(.systemGray6))
 }

@@ -1,29 +1,19 @@
 import Foundation
 import SwiftData
 
-/// Centralized seeding logic shared across ContentView and SettingsSheet
+/// Inserts strength defaults; TrainingStore owns initialization and saving.
 enum SeedHelper {
     static func seedMuscleGroups(context: ModelContext) {
-        for group in MuscleGroup.defaultGroups {
+        for (order, group) in MuscleGroup.defaultGroups.enumerated() {
+            group.displayOrder = order
             context.insert(group)
         }
     }
     
     static func seedExercises(context: ModelContext) {
-        for exercise in Exercise.sampleExercises {
+        for (order, exercise) in Exercise.sampleExercises.enumerated() {
+            exercise.displayOrder = order
             context.insert(exercise)
-        }
-    }
-}
-
-/// Safe save wrapper with error logging
-extension ModelContext {
-    func safeSave(file: String = #file, line: Int = #line) {
-        do {
-            try save()
-        } catch {
-            let filename = (file as NSString).lastPathComponent
-            print("[\(filename):\(line)] Failed to save: \(error.localizedDescription)")
         }
     }
 }

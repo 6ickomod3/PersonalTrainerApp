@@ -4,110 +4,140 @@ import SwiftUI
 
 @Observable
 class ExerciseDetailViewModel {
-    var exercise: Exercise
-    var modelContext: ModelContext
-    
-    // Form State
+    let exercise: Exercise
+    let modelContext: ModelContext
+
     var reps: Int
     var weight: Double
-    
+    var errorMessage: String?
+    private(set) var lastAddedSetID: UUID?
+
     init(exercise: Exercise, modelContext: ModelContext) {
         self.exercise = exercise
         self.modelContext = modelContext
-        
-        // Default initialization
-        self.reps = exercise.defaultReps
-        self.weight = exercise.defaultWeight
-        
-        // Smart Pre-fill: Try to find the most recent set
-        if let lastSet = exercise.sets.sorted(by: { $0.date > $1.date }).first {
+        reps = min(max(exercise.defaultReps, 1), 50)
+        weight = exercise.weightConfiguration.nearest(to: exercise.defaultWeight)
+        if let lastSet = exercise.sets.max(by: { $0.date < $1.date }) {
             prefillFromSet(lastSet)
         }
     }
-    
+
+    /// Repeating prepares the next set; the historical record stays unchanged.
     func prefillFromSet(_ set: WorkoutSet) {
-        // 1. Match Reps (Clamp to 0-50 range supported by picker)
-        self.reps = min(max(set.reps, 0), 50)
-        
-        // 2. Match Weight (Find nearest valid step)
-        let validWeights = Array(stride(from: exercise.weightMin, through: exercise.weightMax, by: exercise.weightStep))
-        
-        if let nearest = validWeights.min(by: { abs($0 - set.weight) < abs($1 - set.weight) }) {
-            self.weight = nearest
-        } else {
-            // Fallback if stride fails (shouldn't happen)
-            self.weight = set.weight
-        }
+        reps = min(max(set.reps, 1), 50)
+        weight = exercise.weightConfiguration.nearest(to: set.weight)
     }
-    
-    // MARK: - Computed Properties
-    
-    // Group sets by date
+
+    func normalizeSelection() {
+        reps = min(max(reps, 1), 50)
+        weight = exercise.weightConfiguration.nearest(to: weight)
+    }
+
     var setsByDate: [(date: Date, sets: [WorkoutSet], totalVolume: Double)] {
-        let grouped = Dictionary(grouping: exercise.sets) { set in
-            Calendar.current.startOfDay(for: set.date)
-        }
-        
+        let grouped = Dictionary(grouping: exercise.sets) { Calendar.current.startOfDay(for: $0.date) }
         return grouped.map { date, sets in
-            let sortedSets = sets.sorted(by: { $0.date > $1.date })
-            let totalVolume = sortedSets.reduce(0) { $0 + $1.volume }
-            return (date: date, sets: sortedSets, totalVolume: totalVolume)
-        }.sorted(by: { $0.date > $1.date })
+            (date: date, sets: sets.sorted { $0.date > $1.date }, totalVolume: sets.reduce(0) { $0 + $1.volume })
+        }.sorted { $0.date > $1.date }
     }
-    
-    // Get the last training volume (from most recent date BEFORE today)
-    var lastTrainingVolume: Double? {
-        let today = Calendar.current.startOfDay(for: Date())
-        let previousDays = setsByDate.filter { $0.date < today }
-        guard let mostRecentPreviousDay = previousDays.first else { return nil }
-        return mostRecentPreviousDay.totalVolume
+
+    var lastTrainingVolume: Double? { exercise.lastTrainingVolume }
+    var todaysVolume: Double { exercise.todaysVolume }
+    var suggestedVolume: Double? { exercise.suggestedVolume }
+    var canUndoLastAddedSet: Bool {
+        guard let lastAddedSetID else { return false }
+        return exercise.sets.contains { $0.id == lastAddedSetID }
     }
-    
-    // Get total volume for today
-    var todaysVolume: Double {
-        let today = Calendar.current.startOfDay(for: Date())
-        if let todayData = setsByDate.first(where: { $0.date == today }) {
-            return todayData.totalVolume
-        }
-        return 0
-    }
-    
-    // Calculate suggested volume using exercise's custom improvement percentage
-    var suggestedVolume: Double? {
-        guard let last = lastTrainingVolume else { return nil }
-        let improvementFactor = 1.0 + (exercise.volumeImprovementPercent / 100.0)
-        return last * improvementFactor
-    }
-    
-    // MARK: - Actions
-    
-    func addSet() {
+
+    @discardableResult
+    func addSet() -> Bool {
+        normalizeSelection()
+        let previousSets = exercise.sets
+        let previousCache = exercise.cachedLastLogDate
         let newSet = WorkoutSet(reps: reps, weight: weight)
-
-        // 1. Add to relationship
-        exercise.sets.append(newSet)
-
-        // 2. Explicit insert and save (Fix for validation error)
         modelContext.insert(newSet)
+        newSet.exercise = exercise
         exercise.refreshCachedLastLogDate()
-        modelContext.safeSave()
+        do {
+            try modelContext.save()
+            lastAddedSetID = newSet.id
+            errorMessage = nil
+            return true
+        } catch {
+            // Restore the inverse relationship before discarding the unsaved model.
+            exercise.sets = previousSets
+            exercise.cachedLastLogDate = previousCache
+            modelContext.delete(newSet)
+            modelContext.rollback()
+            refreshAfterRollback()
+            errorMessage = "Your set could not be saved. Please try again."
+            return false
+        }
     }
 
-    func deleteSet(_ set: WorkoutSet) {
-        print("Deleting set with ID: \(set.id)")
-
-        // 1. Manually remove from relationship first (Fix for "Delete All" bug / UI sync)
-        if let index = exercise.sets.firstIndex(where: { $0.id == set.id }) {
-            exercise.sets.remove(at: index)
-        }
-
-        // 2. Delete from context
+    @discardableResult
+    func deleteSet(_ set: WorkoutSet) -> Bool {
+        guard exercise.sets.contains(where: { $0.id == set.id }) else { return false }
+        let deletedID = set.id
+        let previousSets = exercise.sets
+        let previousCache = exercise.cachedLastLogDate
+        exercise.sets.removeAll { $0.id == deletedID }
         modelContext.delete(set)
         exercise.refreshCachedLastLogDate()
-        modelContext.safeSave()
+        guard saveChanges(message: "Your set could not be deleted. Please try again.", restore: {
+            self.exercise.sets = previousSets
+            self.exercise.cachedLastLogDate = previousCache
+        }) else { return false }
+        if lastAddedSetID == deletedID { lastAddedSetID = nil }
+        return true
     }
-    
-    func cleanupOldSets(maxDays: Int) {
-        exercise.cleanupOldSets(modelContext: modelContext, maxDays: maxDays)
+
+    @discardableResult
+    func updateSet(_ set: WorkoutSet, reps: Int, weight: Double, date: Date) -> Bool {
+        guard exercise.sets.contains(where: { $0.id == set.id }), reps > 0, weight.isFinite, weight >= 0 else {
+            errorMessage = "Enter a positive number of reps and a weight of zero or more."
+            return false
+        }
+        let previous = (reps: set.reps, weight: set.weight, date: set.date, cache: exercise.cachedLastLogDate)
+        // Historical values need not fit the exercise's current picker configuration.
+        set.reps = reps
+        set.weight = weight
+        set.date = date
+        exercise.refreshCachedLastLogDate()
+        return saveChanges(message: "Your changes could not be saved. Please try again.", restore: {
+            set.reps = previous.reps
+            set.weight = previous.weight
+            set.date = previous.date
+            self.exercise.cachedLastLogDate = previous.cache
+        })
     }
+
+    @discardableResult
+    func undoLastAddedSet() -> Bool {
+        guard let lastAddedSetID, let set = exercise.sets.first(where: { $0.id == lastAddedSetID }) else { return false }
+        return deleteSet(set)
+    }
+
+    private func saveChanges(message: String, restore: () -> Void) -> Bool {
+        do {
+            try modelContext.save()
+            errorMessage = nil
+            return true
+        } catch {
+            restore()
+            modelContext.rollback()
+            modelContext.processPendingChanges()
+            errorMessage = message
+            return false
+        }
+    }
+
+    private func refreshAfterRollback() {
+        // Failed saves can leave SwiftData's fetch snapshot one change behind even
+        // after rollback. Refresh from persisted records before history queries run.
+        var descriptor = FetchDescriptor<WorkoutSet>()
+        descriptor.includePendingChanges = false
+        _ = try? modelContext.fetch(descriptor)
+        modelContext.processPendingChanges()
+    }
+
 }

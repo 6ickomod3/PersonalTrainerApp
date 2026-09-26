@@ -1,73 +1,40 @@
-# CLAUDE.md
+# Project guidance
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Sigma Training is an iOS 18.5+ SwiftUI/SwiftData strength-training app. Use Xcode 16.4+ and the `PersonalTrainerApp` scheme. The widget extension contains only the rest-timer Live Activity.
 
-## Project
+## Build and test
 
-"Sigma Training" (target name `PersonalTrainerApp`) — an iOS 18.5+ SwiftUI fitness app using SwiftData for persistence. The Xcode project also ships a Live Activity widget extension target.
-
-## Build & Test
-
-Open the workspace with `open PersonalTrainerApp.xcodeproj`. From the command line:
-
-```bash
-# List schemes / targets
-xcodebuild -list -project PersonalTrainerApp.xcodeproj
-
-# Build the app for the simulator
-xcodebuild -project PersonalTrainerApp.xcodeproj \
-  -scheme PersonalTrainerApp \
-  -destination 'platform=iOS Simulator,name=iPhone 16' build
-
-# Run unit tests (Swift Testing framework — `import Testing`, `@Test`)
-xcodebuild -project PersonalTrainerApp.xcodeproj \
-  -scheme PersonalTrainerApp \
+```sh
+xcodebuild -project PersonalTrainerApp.xcodeproj -scheme PersonalTrainerApp \
   -destination 'platform=iOS Simulator,name=iPhone 16' test
-
-# Run a single test by name
-xcodebuild test -project PersonalTrainerApp.xcodeproj \
-  -scheme PersonalTrainerApp \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
-  -only-testing:PersonalTrainerAppTests/testDeleteSet
 ```
 
-There are two schemes: `PersonalTrainerApp` (main app + tests) and `PersonalTrainerAppRestTimerWidgetExtension` (Live Activity widget). Targets: `PersonalTrainerApp`, `PersonalTrainerAppTests`, `PersonalTrainerAppUITests`, `PersonalTrainerAppRestTimerWidgetExtension`.
+Unit tests use Swift Testing; UI tests use XCTest. Debug UI tests launch with `--ui-testing`, which selects an in-memory store and disables external timer effects.
 
-## Architecture
+## Compatibility boundary
 
-### SwiftData schema and container
+`PersonalTrainerAppApp.swift` registers seven model types: Exercise, MuscleGroup, WorkoutSet, AppSettings, CardioLog, GuideItem, and MuscleGroupGuide. Keep all seven types, their persisted properties/defaults, and their relationships compatible with existing stores. Warm-up, cool-down, and cardio UI was retired in 1.7; their data models remain intentionally. Do not remove or rename these models as dead code.
 
-The full model schema is registered in **one place**: `PersonalTrainerAppApp.swift` in the `.modelContainer(for:)` call. When adding a new `@Model` class, it MUST be added to that array or queries will fail at runtime. Current models:
+Exercise still refers to its group by name. Group renames must update exercises in the same save, preserve guide relationships and completion preferences, and reject ambiguous/duplicate names. A later stable-ID redesign requires a separately tested schema migration.
 
-- `MuscleGroup` (in `Models.swift`) — groups exercises; cascade-owns `MuscleGroupGuide` join records.
-- `GuideItem` (in `Models.swift`) — a warmup or cooldown drill. Stored once and **reused across muscle groups** via the join model below ("Global Pool" pattern, see `ContentView.seedGuides`).
-- `MuscleGroupGuide` (in `Models.swift`) — join entity with `displayOrder` and `category` linking a `MuscleGroup` to a `GuideItem`. `category` and `GuideItem.type` are stored as raw `String`; use the `GuideCategory` / `GuideType` enums when reading/writing them.
-- `Exercise` (in `Models.swift`) — links to muscle group **by name string** (`muscleGroupName`), not by relationship. Cascade-owns its `WorkoutSet`s.
-- `WorkoutSet` (in `Models.swift`) — has back-reference `exercise: Exercise?`; computed `volume = reps × weight`.
-- `CardioLog` (in `Models.swift`) — standalone, not linked to muscle groups.
-- `AppSettings` (in `AppSettings.swift`) — singleton (one row); stores `maxStorageDays` and `defaultTimerDuration`. Read with `@Query` and create one if missing (see `ContentView.onAppear`).
+## Data lifecycle
 
-### Seeding & migrations on first launch
+`TrainingStore.prepare(context:)` seeds strength content only for a truly new store. An existing AppSettings row preserves intentionally empty stores. No guides are seeded. `DataMigration.performMigrations` repairs uniquely matched missing group-name links, duplicate references/invalid duplicate set IDs, and missing inverses with unique relationship evidence, then refreshes last-log caches. Do not guess orphan ownership, capitalize user names, reset stores, or prune workout history at startup.
 
-`ContentView.onAppear` runs three idempotent steps in order: `DataMigration.performMigrations`, then `SeedHelper.seedMuscleGroups` / `seedExercises` if empty, then `seedGuides()`. **All schema/data changes that need to handle existing user data must be added to `DataMigration.performMigrations`** — that struct already deduplicates set references, regenerates duplicate `WorkoutSet.id`s, backfills nil dates, infers missing `muscleGroupName` from the exercise name, and Title-Cases names. Read these existing migrations before changing model defaults; they exist because users already have stores in the field.
+`TrainingStore.resetAll` is the explicit full-erase operation, including retained feature data and guide preference keys. Normal settings changes must not call it.
 
-Use the `ModelContext.safeSave()` extension (defined in `SeedHelper.swift`) instead of `try? context.save()` so failures are logged with file+line.
+Use draft form state. Call `try modelContext.save()` and show errors; roll back failed operations. Only show success or dismiss an editor after a successful save. Preserve explicit set relationship changes and context insert/delete operations until regression tests prove an alternative safe.
 
-### View composition
+`WeightConfiguration` bounds picker arrays and validates numeric settings. Invalid legacy settings get safe fallback choices without altering the stored configuration or old sets. Historical editing permits finite nonnegative weights outside the current picker range.
 
-`ContentView` is a single-screen dashboard wrapping `NavigationStack` with three scrolling sections (`StrengthTrainingView`, `CardioSectionView`, `CalendarSectionView`) and a `TimerView` pinned at the bottom via a `ZStack`. Navigation pushes `ExerciseListView` (for a `MuscleGroup`) and `ExerciseDetailView` (for an `Exercise`) using value-based `navigationDestination(for:)`.
+## UI
 
-`ExerciseDetailViewModel` is `@Observable` and owns form state plus computed groupings (`setsByDate`, `lastTrainingVolume`, `suggestedVolume`). When adding a set it both appends to the relationship array AND calls `modelContext.insert(...)`; deleting calls `modelContext.delete(...)` AND removes from the array. Both steps are required — keep this pattern, the comments in `addSet` / `deleteSet` flag a SwiftData validation bug that motivated it.
+ContentView owns Train and History navigation paths and one TimerManager. Each tab lays out its navigation stack above a separate TimerView row, so scrolling content cannot extend behind the timer. The timer's empty area and arrow toggle inline adjustments; timer action buttons do not toggle expansion. Reset clears both navigation paths.
 
-### Timer + Live Activity
+Train shows continue-training and managed muscle groups. ExerciseListView uses stable user ordering and search. ExerciseDetailView prioritizes set entry and today’s sets, with repeat/edit/delete/undo. Progress and Instructions are separate destinations. History displays only WorkoutSet records, grouping by exercise identity and preserving unassigned sets.
 
-Two distinct objects, do not conflate:
+Use Theme tokens, semantic buttons, accessible labels, and layouts that expand at larger text sizes.
 
-- **`TimerState`** (`TimerState.swift`, `@Observable`) — UI-only state for the floating timer (expanded vs. collapsed, height for spacer math). Injected via `.environment(timerState)` so any view that needs to reserve scroll-space below the timer reads `timerState.spacerHeight`.
-- **`TimerManager`** (`TimerManager.swift`, `@Observable`) — countdown engine. Drives a 0.1s `Timer`, an ActivityKit `Activity<TimerAttributes>` (Lock Screen + Dynamic Island via the widget extension), and a `UNCalendarNotificationTrigger` so the alarm still fires when backgrounded. `TimerAttributes` is shared with the widget extension target.
+## Timer
 
-When the timer's user-set duration changes (via `addTime`), all three must stay in sync: `secondsRemaining`, `userSetDuration`, the activity's content state, and the rescheduled notification. Look at `addTime` for the canonical pattern.
-
-### Theming
-
-`Theme.swift` defines the design system (earthy palette, gradients, corner radii, spacing tokens, materials). The app-wide tint is applied once in `PersonalTrainerAppApp.swift` via `.tint(Theme.accent)`. Use `Theme.*` tokens and the `.themeCard()` view modifier for new surfaces rather than inlining colors or radii.
+TimerManager is main-actor isolated with an injectable clock and external-effects switch for tests. Keep notification scheduling independent of Live Activity authorization. Clear the old activity handle before awaiting its end. Changing settings updates idle timers immediately and active/paused timers for their next reset/rest. Scene activation reconciles the deadline without replaying a late alarm. The process-termination/relaunch case does not currently restore a timer.

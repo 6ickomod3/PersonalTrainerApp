@@ -1,89 +1,81 @@
 import SwiftUI
 
+struct ExerciseConfigurationFields: View {
+    @Binding var draft: ExerciseConfigurationDraft
+
+    var body: some View {
+        Section("Exercise") {
+            TextField("Exercise name", text: $draft.name)
+                .accessibilityIdentifier("ExerciseNameField")
+        }
+        Section {
+            numberField("Minimum (lbs)", text: $draft.minimum, identifier: "MinimumWeightField")
+            numberField("Maximum (lbs)", text: $draft.maximum, identifier: "MaximumWeightField")
+            numberField("Increment (lbs)", text: $draft.increment, identifier: "WeightIncrementField")
+        } header: {
+            Text("Weight choices")
+        } footer: {
+            Text("These settings control the logging picker. Existing sets keep their original weights.")
+        }
+        Section {
+            numberField("Volume increase (%)", text: $draft.improvement, identifier: "VolumeIncreaseField")
+        } header: {
+            Text("Progression goal")
+        } footer: {
+            Text("A suggested target based on the previous training day's total reps × weight.")
+        }
+    }
+
+    private func numberField(_ title: String, text: Binding<String>, identifier: String) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            TextField(title, text: text)
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .frame(minWidth: 60, maxWidth: 120)
+                .accessibilityIdentifier(identifier)
+        }
+    }
+}
+
 struct AddExerciseSheet: View {
     @Binding var isPresented: Bool
-    let muscleGroupName: String
-    // Callback: name, weightMin, weightMax, weightStep, volumeImprovementPercent
-    var onAdd: (String, Double, Double, Double, Double) -> Void
-    
-    @State private var exerciseName = ""
-    @State private var weightMin = 0.0
-    @State private var weightMax = 200.0
-    @State private var weightStep = 5.0
-    @State private var volumeImprovementPercent = 3.0
-    
+    /// Returns an error message on failure, or nil after the exercise has saved.
+    var onAdd: (String, Double, Double, Double, Double) -> String?
+    @State private var draft = ExerciseConfigurationDraft()
+    @State private var saveError: String?
+
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("Exercise Details")) {
-                    TextField("Exercise Name", text: $exerciseName)
-                }
-                
-                Section(header: Text("Weight Configuration")) {
-                    HStack {
-                        Text("Min Weight")
-                        Spacer()
-                        TextField("0", value: $weightMin, format: .number)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                        Text("lbs")
-                    }
-                    
-                    HStack {
-                        Text("Max Weight")
-                        Spacer()
-                        TextField("200", value: $weightMax, format: .number)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                        Text("lbs")
-                    }
-                    
-                    HStack {
-                        Text("Step Increment")
-                        Spacer()
-                        TextField("5", value: $weightStep, format: .number)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                        Text("lbs")
-                    }
-                }
-                
-                Section(header: Text("Progression Goal")) {
-                    HStack {
-                        Text("Volume Increase")
-                        Spacer()
-                        TextField("3", value: $volumeImprovementPercent, format: .number)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                        Text("%")
-                    }
-                    Text("Suggested volume will increase by this percentage each session.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                ExerciseConfigurationFields(draft: $draft)
+                if let message = saveError ?? (draft.name.isEmpty ? nil : draft.validationMessage) {
+                    Section { Text(message).foregroundStyle(.red) }
                 }
             }
             .navigationTitle("Add Exercise")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") {
-                        isPresented = false
-                    }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { isPresented = false }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Add") {
-                        if !exerciseName.trimmingCharacters(in: .whitespaces).isEmpty {
-                            onAdd(exerciseName.capitalized, weightMin, weightMax, weightStep, volumeImprovementPercent)
-                            isPresented = false
-                        }
-                    }
-                    .disabled(exerciseName.trimmingCharacters(in: .whitespaces).isEmpty)
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") { save() }
+                        .disabled(draft.validationMessage != nil)
+                        .accessibilityIdentifier("SaveExerciseButton")
                 }
             }
         }
+    }
+
+    private func save() {
+        guard draft.validationMessage == nil,
+              let min = ExerciseConfigurationDraft.number(draft.minimum),
+              let max = ExerciseConfigurationDraft.number(draft.maximum),
+              let step = ExerciseConfigurationDraft.number(draft.increment),
+              let improvement = draft.improvementValue else { return }
+        saveError = onAdd(draft.trimmedName, min, max, step, improvement)
+        if saveError == nil { isPresented = false }
     }
 }

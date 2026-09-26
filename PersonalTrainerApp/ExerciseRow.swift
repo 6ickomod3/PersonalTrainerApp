@@ -1,43 +1,44 @@
 import SwiftUI
 
-/// Row view for exercises in the exercise list with daily completion status
 struct ExerciseRow: View {
     let exercise: Exercise
     let onRename: () -> Void
     let onDelete: () -> Void
 
+    private var todaysSets: Int { exercise.sets.filter { Calendar.current.isDateInToday($0.date) }.count }
+
     var body: some View {
-        NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
-            HStack {
-                // Leading Status Icon (Read-only)
-                Image(systemName: isLoggedToday ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundStyle(isLoggedToday ? Theme.success : Theme.inactive)
-                
+        HStack(spacing: 12) {
+            NavigationLink(destination: ExerciseDetailView(exercise: exercise)) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(exercise.name)
                         .font(.body.weight(.medium))
-                        .foregroundStyle(Theme.accent)
-                    
-                    // Subtitle: Suggested Volume to match height
-                    Group {
-                         if let suggested = exercise.suggestedVolume {
-                             Text("Target Volume: \(Int(suggested)) lbs")
-                         } else {
-                             Text("Start logging to see targets")
-                         }
+                        .foregroundStyle(.primary)
+                    if todaysSets > 0 {
+                        Label("\(todaysSets) set\(todaysSets == 1 ? "" : "s") today", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(Theme.success)
+                            .font(.caption)
+                    } else if let date = exercise.lastLogDate {
+                        Text("Last trained \(date.formatted(date: .abbreviated, time: .omitted))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Ready for your first set")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 }
-                
-                Spacer()
+                .padding(.vertical, 4)
             }
+            .accessibilityIdentifier("ExerciseRow_\(exercise.name)")
+            Menu {
+                Button("Rename", systemImage: "pencil", action: onRename)
+                Button("Delete", systemImage: "trash", role: .destructive, action: onDelete)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .frame(minWidth: 44, minHeight: 44)
+            }
+            .accessibilityLabel("Manage \(exercise.name)")
         }
-    }
-    
-    private var isLoggedToday: Bool {
-        guard let lastDate = exercise.lastLogDate else { return false }
-        return Calendar.current.isDateInToday(lastDate)
     }
 }

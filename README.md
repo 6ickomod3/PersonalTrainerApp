@@ -1,162 +1,42 @@
 # Sigma Training
-(Formerly Personal Trainer App)
 
-A comprehensive iOS fitness companion for tracking workouts, managing exercises, and organizing your training routine by muscle group.
+An iOS strength-training log built with SwiftUI and SwiftData.
 
-## Features
+## Version 1.7.0 — Strength focus
 
-- 📋 **Unified Dashboard** - All-in-one view with Strength, Cardio, and Calendar tracking
-- 👋 **Personalized Greeting** - Time-aware, daily-rotating welcome that addresses you by name
-- 💪 **Comprehensive Guides** - Workouts include Warm-up and Cool-down sections with detailed instructions
-- 🃏 **Rich Muscle Group Cards** - Per-group icon, exercise count, and "last trained" indicator at a glance
-- 🏃 **Cardio Logging** - Track runs, cycles, and more with daily filtering
-- 📅 **Activity Calendar** - Visual monthly history with color-coded workout dots, localized weekday header
-- 🗑️ **Smart Data Management** - Configurable data retention (1-30 days) with automatic cleanup
-- ⏱️ **Rest Timer with Progress Ring** - Circular countdown ring, primary/secondary button hierarchy, haptic feedback, Lock Screen + Dynamic Island Live Activities, background alarms
-- 👆 **Swipe-to-Delete** - Native swipe actions for workout sets
-- ✏️ **Native Edit Mode** - Safe and intuitive management for adding, deleting, renaming, and reordering items
-- 🎨 **Refined Earthy Palette** - Categorical colors per workout phase + functional colors for actions, data, and state
-- ♿️ **Accessibility Built-in** - VoiceOver labels on every icon button, 44pt tap targets, haptic confirmation on key actions
-- 💾 **Data Persistence** - Reliable local storage using SwiftData
-- 🔄 **Smart Migrations** - Automatic, additive data handling for app updates
-- 📱 **Professional App Icon** - Custom icon with auto-generated sizes for all devices
+- **Train:** continue your last exercise, browse muscle groups, and add, rename, or reorder groups and exercises.
+- **Log sets:** choose reps and weight, repeat a previous set, edit a record, delete a set, or undo the last addition.
+- **History:** a strength-only calendar with editable daily records and dated progress charts.
+- **Rest timer:** a separate compact row across both tabs, with Start/Pause and adjustments that expand by tapping the empty area or arrow. Content resizes above it. Includes the existing Lock Screen/Dynamic Island Live Activity.
+- **Instructions:** exercise notes and video links have their own screen.
+- **Keep history:** opening an exercise no longer prunes or disconnects older sets.
 
-## Getting Started
+Warm-up, cool-down, and cardio screens are temporarily removed pending redesign. Their existing records remain saved on the device. New installations no longer seed guides. The calendar only reports strength training days.
 
-### Requirements
-- iOS 17.0+
-- Xcode 15.0+
-- Swift 5.9+
+## Existing data
 
-### Installation
+The app retains the original seven SwiftData model types, persisted fields, relationships, app identifier, and store location. No store reset is required for this update. Existing cardio, guides, guide associations, and guide completion preferences remain intact during normal use and upgrades. The old retention setting is preserved in storage but no longer deletes workouts.
 
-1. Clone the repository:
-```bash
-git clone https://github.com/6ickomod3/PersonalTrainerApp.git
-cd PersonalTrainerApp
+Invalid legacy weight ranges receive safe temporary picker choices until corrected in Exercise Settings; historical values remain unchanged. Missing group-name references are repaired only when there is one unambiguous case/whitespace match. Unassigned historical sets remain visible in History without guessing their exercise.
+
+Settings → Erase All App Data deliberately removes **all** records, including retained cardio and guides, and restores default strength exercises. Settings → Reset settings changes only the settings draft until Save is tapped.
+
+## Build and test
+
+Requires iOS 18.5+ and Xcode 16.4+.
+
+Open `PersonalTrainerApp.xcodeproj`, select the `PersonalTrainerApp` scheme and an iPhone simulator, then run.
+
+```sh
+xcodebuild -project PersonalTrainerApp.xcodeproj \
+  -scheme PersonalTrainerApp \
+  -destination 'platform=iOS Simulator,name=iPhone 16' test
 ```
 
-2. Open in Xcode:
-```bash
-open PersonalTrainerApp.xcodeproj
-```
+Unit tests exercise numeric validation, actual logging/edit/delete/undo operations, complete retained-data reopen checks, initialization/reset, calendar locales, and deterministic timer transitions. UI tests cover Train/History navigation, logging/correction, group creation, and timer settings/shared state. Debug UI tests use `--ui-testing` for an isolated in-memory store and disable external timer effects.
 
-3. Build and run on simulator or device:
-   - Select target device
-   - Press Cmd+R or click Run
+Run `./TestsSupport/LegacyCompatibility/verify.sh` on macOS to build a real SQLite store using the old Git model source and verify that the current app code preserves it through preparation, saving, and reopening. See [the compatibility check](TestsSupport/LegacyCompatibility/README.md) for fixture contents and requirements.
 
-## Usage
+Notification delivery and Live Activities during real-device suspension/termination still need device validation. The countdown is not restored after the app process is terminated.
 
-### Main Screen
-- View all muscle groups
-- Tap to explore exercises in each group
-- Swipe left to delete muscle groups
-- Use menu (⋯) to add new groups or reset data
-
-### Exercise List
-- View exercises for selected muscle group
-- Tap to log workouts
-- Tap + to add new exercises
-- Swipe left to delete exercises
-
-### Logging a Workout
-1. Select an exercise
-2. Use wheel pickers to set reps and weight
-3. Tap "Add Set" to log
-4. View your workout history organized by day below
-5. See volume calculated for each set (reps × weight)
-6. View daily totals and total daily volume
-7. Swipe left on sets to delete if needed
-
-### Exercise Settings
-1. Open any exercise detail view
-2. Tap the gear icon (⚙️) in the top right
-3. Customize weight range (min, max, step) for that exercise
-4. Tap "Done" to save - settings persist automatically
-
-### App Settings
-1. Tap the menu (⋯) on the main screen
-2. Select "Settings"
-3. Configure data retention (1-30 days)
-4. Older workout logs automatically delete to manage storage
-
-### Rest Timer
-1. Timer appears at the bottom of the screen (always visible)
-2. Default countdown is 1:30 (90 seconds) - configurable in settings
-3. Adjust time:
-   - Tap **–15s** to decrease by 15 seconds
-   - Tap **+15s** to increase by 15 seconds
-   - Adjusted time is remembered on reset
-4. Control timer:
-   - Tap **Start** to begin countdown
-   - Tap **Pause** to pause the timer
-   - Tap **Reset** to return to your set duration (or 1:30 default)
-5. Collapse/Expand:
-   - Drag timer down 50+ points to minimize (shows only time)
-   - Tap minimized timer or drag up to expand again
-   - Haptic feedback (vibration) triggers when timer reaches 0:00
-6. Configure timer duration:
-   - Tap the menu (⋯) on the main screen
-   - Select "Settings"
-   - Update "Default Duration (seconds)" field
-   - Common values: 60 (1:00), 90 (1:30), 120 (2:00)
-   - Tap "Done" to save
-
-## Default Content
-
-### Muscle Groups
-- Chest
-- Back
-- Leg
-- Shoulder
-- Arm
-
-### Sample Exercises
-- **Chest:** Bench Press, Push Up
-- **Back:** Pull Up, Deadlift
-- **Leg:** Squat, Lunge
-- **Shoulder:** Overhead Press, Lateral Raise
-- **Arm:** Bicep Curl, Tricep Extension
-
-## Architecture
-
-### Technology Stack
-- **UI Framework:** SwiftUI
-- **Data Storage:** SwiftData
-- **Architecture:** MVVM-inspired reactive design
-
-### Data Models
-- `MuscleGroup` - Exercise categorization
-- `Exercise` - Workout exercise with metadata
-- `WorkoutSet` - Individual set logging with timestamps
-
-## Changelog
-
-See [CHANGELOG.md](./CHANGELOG.md) for detailed version history and upcoming features.
-
-**Current Version:** v1.6.0 (May 20, 2026) - Polish & Personalization 🎨
-
-## Future Roadmap
-
-- 📊 Progress analytics and visualizations
-- 🏆 Personal records (PR) tracking
-- 📅 Workout routines and templates
-- ⌚ Apple Watch companion app
-- 📝 Exercise notes and form tips
-- 📱 Dark mode support
-
-## License
-
-MIT License - See LICENSE file for details
-
-## Author
-
-Ji Dai (@6ickomod3)
-
-## Support
-
-For issues, feature requests, or feedback, please open an issue on GitHub.
-
----
-
-**Made with ❤️ for fitness enthusiasts**
+See [PROJECT_REVIEW.md](PROJECT_REVIEW.md) for the original audit and implementation direction, and [CHANGELOG.md](CHANGELOG.md) for release history.

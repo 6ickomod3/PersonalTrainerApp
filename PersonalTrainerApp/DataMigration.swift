@@ -1,260 +1,67 @@
-import SwiftUI
+import Foundation
 import SwiftData
 
-/// Handles data migrations to ensure backward compatibility when schema changes
-struct DataMigration {
-    /// Performs all necessary migrations on existing data
-    static func performMigrations(modelContext: ModelContext) {
-        migrateExerciseMuscleGroups(modelContext: modelContext)
-        migrateExerciseDates(modelContext: modelContext)
-        migrateWorkoutSetRelationships(modelContext: modelContext)
-        ensureUniqueIDs(modelContext: modelContext)
-        deduplicateSetReferences(modelContext: modelContext)
-        migrateCapitalization(modelContext: modelContext)
-        backfillCachedLastLogDate(modelContext: modelContext)
-    }
+/// Repairs only relationships that can be established without guessing.
+/// Persistent model declarations remain compatible with the previous release.
+enum DataMigration {
+    /// Applies repairs in the caller's transaction. The caller saves or rolls back.
+    static func performMigrations(modelContext: ModelContext) throws {
+        let exercises = try modelContext.fetch(FetchDescriptor<Exercise>())
+        let groups = try modelContext.fetch(FetchDescriptor<MuscleGroup>())
+        let workoutSets = try modelContext.fetch(FetchDescriptor<WorkoutSet>())
+        repairSetReferences(exercises: exercises, workoutSets: workoutSets)
+        let exactNames = Set(groups.map(\.name))
+        let groupsByName = Dictionary(grouping: groups) { normalizedName($0.name) }
 
-    /// Migration: Backfill Exercise.cachedLastLogDate from existing sets.
-    /// Runs every launch, but only writes when cache is stale — cheap on subsequent runs.
-    private static func backfillCachedLastLogDate(modelContext: ModelContext) {
-        do {
-            let exercises = try modelContext.fetch(FetchDescriptor<Exercise>())
-            var needsSave = false
-
-            for exercise in exercises {
-                let actual = exercise.sets.max(by: { $0.date < $1.date })?.date
-                if exercise.cachedLastLogDate != actual {
-                    exercise.cachedLastLogDate = actual
-                    needsSave = true
+        for exercise in exercises {
+            if !exactNames.contains(exercise.muscleGroupName) {
+                let key = normalizedName(exercise.muscleGroupName)
+                if !key.isEmpty, let matches = groupsByName[key], matches.count == 1 {
+                    exercise.muscleGroupName = matches[0].name
                 }
             }
 
-            if needsSave {
-                try modelContext.save()
-                print("cachedLastLogDate backfill completed successfully")
+            let actualLastLogDate = exercise.sets.map(\.date).max()
+            if exercise.cachedLastLogDate != actualLastLogDate {
+                exercise.cachedLastLogDate = actualLastLogDate
             }
-        } catch {
-            print("Error during cachedLastLogDate backfill: \(error)")
+        }
+        // Orphan sets, unmatched names, optional dates and hidden guides/cardio remain intact.
+    }
+
+    private static func repairSetReferences(exercises: [Exercise], workoutSets: [WorkoutSet]) {
+        var explicitOwners: [PersistentIdentifier: [Exercise]] = [:]
+        for exercise in exercises {
+            var seenObjects = Set<PersistentIdentifier>()
+            let uniqueSets = exercise.sets.filter { seenObjects.insert($0.persistentModelID).inserted }
+            if uniqueSets.count != exercise.sets.count { exercise.sets = uniqueSets }
+            for set in uniqueSets {
+                explicitOwners[set.persistentModelID, default: []].append(exercise)
+            }
+        }
+        // A missing inverse is repairable only when one explicit forward link identifies it.
+        // Standalone orphan sets have no such evidence and are never assigned an exercise.
+        for set in workoutSets where set.exercise == nil {
+            if let owners = explicitOwners[set.persistentModelID], owners.count == 1 {
+                set.exercise = owners[0]
+            }
+        }
+
+        // Distinct rows with the same app ID break SwiftUI identity and targeted deletion.
+        // Normal IDs remain unchanged; repeated references to one object were handled above.
+        var usedIDs = Set<UUID>()
+        for set in workoutSets {
+            if !usedIDs.insert(set.id).inserted {
+                var replacement = UUID()
+                while usedIDs.contains(replacement) { replacement = UUID() }
+                set.id = replacement
+                usedIDs.insert(replacement)
+            }
         }
     }
 
-    /// Migration: Enforce Title Case for all Exercises and Muscle Groups
-    static func migrateCapitalization(modelContext: ModelContext) {
-        do {
-            let exercises = try modelContext.fetch(FetchDescriptor<Exercise>())
-            let groups = try modelContext.fetch(FetchDescriptor<MuscleGroup>())
-            var needsSave = false
-
-            for exercise in exercises {
-                let text = exercise.name
-                // Check if it's already capitalized to avoid unnecessary writes
-                let capitalized = text.capitalized
-                if text != capitalized {
-                    exercise.name = capitalized
-                    needsSave = true
-                }
-            }
-            
-            for group in groups {
-                let text = group.name
-                let capitalized = text.capitalized
-                if text != capitalized {
-                    group.name = capitalized
-                    needsSave = true
-                }
-            }
-
-            if needsSave {
-                try modelContext.save()
-                print("Capitalization migration completed successfully")
-            }
-        } catch {
-            print("Error during capitalization migration: \(error)")
-        }
-    }
-    
-    /// Migration: Remove duplicate references to the same set object in an exercise's list
-    /// This fixes the issue where deleting one "copy" deletes the object, causing all copies to disappear
-    private static func deduplicateSetReferences(modelContext: ModelContext) {
-        do {
-            let exercises = try modelContext.fetch(FetchDescriptor<Exercise>())
-            var needsSave = false
-            
-            for exercise in exercises {
-                var seenIDs = Set<UUID>()
-                var uniqueSets: [WorkoutSet] = []
-                
-                // Filter out duplicates, keeping only the first occurrence of each ID
-                for set in exercise.sets {
-                    if !seenIDs.contains(set.id) {
-                        seenIDs.insert(set.id)
-                        uniqueSets.append(set)
-                    } else {
-                        print("Found duplicate reference for set ID: \(set.id) in exercise: \(exercise.name)")
-                        needsSave = true
-                    }
-                }
-                
-                if uniqueSets.count != exercise.sets.count {
-                    exercise.sets = uniqueSets
-                }
-            }
-            
-            if needsSave {
-                try modelContext.save()
-                print("Deduplication migration completed successfully")
-            }
-        } catch {
-            print("Error during deduplication migration: \(error)")
-        }
-    }
-    
-    /// Migration: Ensure all workout sets have unique IDs
-    /// This fixes potential issues where duplicate IDs cause multiple sets to be deleted at once
-    private static func ensureUniqueIDs(modelContext: ModelContext) {
-        do {
-            let sets = try modelContext.fetch(FetchDescriptor<WorkoutSet>())
-            var seenIDs = Set<UUID>()
-            var needsSave = false
-            
-            for set in sets {
-                if seenIDs.contains(set.id) {
-                    // Duplicate found! Regenerate ID
-                    let oldID = set.id
-                    set.id = UUID()
-                    needsSave = true
-                    print("Fixed duplicate ID for set: \(oldID) -> \(set.id)")
-                } else {
-                    seenIDs.insert(set.id)
-                }
-            }
-            
-            if needsSave {
-                try modelContext.save()
-                print("Unique ID migration completed successfully")
-            }
-        } catch {
-            print("Error during unique ID migration: \(error)")
-        }
-    }
-    
-    /// Migration: Ensure all workout sets have a valid back-reference to their exercise
-    private static func migrateWorkoutSetRelationships(modelContext: ModelContext) {
-        do {
-            let exercises = try modelContext.fetch(FetchDescriptor<Exercise>())
-            var needsSave = false
-            
-            for exercise in exercises {
-                for set in exercise.sets {
-                    if set.exercise == nil {
-                        set.exercise = exercise
-                        needsSave = true
-                    }
-                }
-            }
-            
-            if needsSave {
-                try modelContext.save()
-                print("WorkoutSet relationship migration completed successfully")
-            }
-        } catch {
-            print("Error during workout set migration: \(error)")
-        }
-    }
-    
-    /// Migration: Ensure all exercises have valid muscle group assignments
-    /// This handles cases where old data might have missing or invalid muscle groups
-    private static func migrateExerciseMuscleGroups(modelContext: ModelContext) {
-        do {
-            // Fetch all exercises
-            let exercises = try modelContext.fetch(FetchDescriptor<Exercise>())
-            
-            var needsSave = false
-            
-            for exercise in exercises {
-                // Migration from old muscleGroupID to muscleGroupName
-                if exercise.muscleGroupName.isEmpty {
-                    // Try to infer from exercise name
-                    let inferredGroup = inferMuscleGroup(from: exercise.name)
-                    exercise.muscleGroupName = inferredGroup
-                    exercise.lastModifiedDate = Date()
-                    needsSave = true
-                    print("Migrated exercise '\(exercise.name)' to muscle group: \(inferredGroup)")
-                }
-            }
-            
-            if needsSave {
-                try modelContext.save()
-                print("Exercise muscle group migration completed successfully")
-            }
-        } catch {
-            print("Error during exercise migration: \(error)")
-        }
-    }
-    
-    /// Migration: Populate date fields for exercises that don't have them
-    private static func migrateExerciseDates(modelContext: ModelContext) {
-        do {
-            let exercises = try modelContext.fetch(FetchDescriptor<Exercise>())
-            
-            var needsSave = false
-            let now = Date()
-            
-            for exercise in exercises {
-                if exercise.createdDate == nil {
-                    exercise.createdDate = now
-                    needsSave = true
-                }
-                if exercise.lastModifiedDate == nil {
-                    exercise.lastModifiedDate = now
-                    needsSave = true
-                }
-            }
-            
-            if needsSave {
-                try modelContext.save()
-                print("Date migration completed successfully")
-            }
-        } catch {
-            print("Error during date migration: \(error)")
-        }
-    }
-    
-    /// Infers the muscle group based on exercise name
-    /// This helps recover data when muscle group assignment is missing
-    private static func inferMuscleGroup(from exerciseName: String) -> String {
-        let name = exerciseName.lowercased()
-        
-        // Chest exercises
-        if name.contains("bench") || (name.contains("press") && name.contains("chest")) ||
-           name.contains("fly") || name.contains("push up") {
-            return "Chest"
-        }
-        
-        // Back exercises
-        if name.contains("pull") || name.contains("row") || name.contains("deadlift") ||
-           name.contains("lat") {
-            return "Back"
-        }
-        
-        // Leg exercises
-        if name.contains("squat") || name.contains("lunge") || name.contains("leg") ||
-           name.contains("calf") {
-            return "Leg"
-        }
-        
-        // Shoulder exercises
-        if name.contains("shoulder") || name.contains("overhead") || name.contains("raise") {
-            return "Shoulder"
-        }
-        
-        // Arm exercises
-        if name.contains("curl") || name.contains("tricep") || name.contains("bicep") ||
-           name.contains("extension") {
-            return "Arm"
-        }
-        
-        // Default to Chest if no match found
-        return "Chest"
+    private static func normalizedName(_ name: String) -> String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive], locale: Locale(identifier: "en_US_POSIX"))
     }
 }
